@@ -1,22 +1,66 @@
+import re
 import pandas as pd
+from pathlib import Path
 from docx import Document
-from .utils import ensure_schema
 
-def parse_docx(path: str) -> pd.DataFrame:
+def parse_docx(path: str | Path) -> pd.DataFrame:
     """
-    Parse a Teams-style DOCX transcript into the PyQual schema.
-    Assumes table format with timestamp, speaker, statement.
+    Parse a DOCX transcript into the PyQual schema.
+
+    Parameters
+    ----------
+    path : str or Path
+        Path to the .docx transcript file.
+
+    Returns
+    -------
+    pd.DataFrame
+        Transcript with columns: timestamp, speaker_id, speaker, statement, codes, themes.
     """
-    doc = Document(path)
-    rows = []
-    for table in doc.tables:
-        for row in table.rows:
-            cells = [c.text.strip() for c in row.cells]
-            if len(cells) >= 3:
-                rows.append({
-                    "timestamp": cells[0],
-                    "speaker": cells[1],
-                    "statement": cells[2],
-                })
-    df = pd.DataFrame(rows)
-    return ensure_schema(df, "docx")
+    try:
+        doc = Document(path)
+    except Exception as e:
+        print(f"Error opening DOCX file '{path}': {e}")
+        return pd.DataFrame(columns=["timestamp", "speaker_id", "speaker", "statement", "codes", "themes"])
+    
+    segments = []
+    current_speaker = None
+    current_timestamp = None
+    current_statement = []
+
+    for para in doc.paragraphs:
+        line = para.text.strip()
+        if not line:
+            continue  # Skip empty lines
+
+        # Match: speaker name + timestamp
+        match = re.match(
+            r'([A-Za-z\s!@#$%^&*()_+=\-\{\}\[\]\|;\'\",.<>/?~]+)\s+((?:(\d{1,2}):)?\d{1,2}:\d{2})',
+            line
+        )
+
+        if match:
+            # Save previous segment
+            if current_speaker and current_statement:
+                cleaned_statement = " ".join(current_statement).replace("\n", " ")
+                segments.append([current_timestamp, None, current_speaker, cleaned_statement, [], []])
+
+            # Extract new speaker + timestamp
+            current_speaker = match.group(1).strip()
+            current_timestamp = match.group(2)
+            current_statement = [line.split(current_timestamp, 1)[1].strip()]
+        else:
+            if current_statement is not None:
+                current_statement.append(line)
+
+    # Save last segment
+    if current_speaker and current_statement:
+        cleaned_statement = " ".join(current_statement).replace("\n", " ")
+        segments.append([current_timestamp, None, current_speaker, cleaned_statement, [], []])
+
+    df = pd.DataFrame(
+        segments,
+        columns=["timestamp", "speaker_id", "speaker", "statement", "codes", "themes"]
+    )
+
+    return df
