@@ -9,7 +9,9 @@ import os
 load_dotenv()
 
 m = MelleaSession(backend=WatsonxAIBackend(model_id=os.getenv("MODEL_ID")))
-file = Path(__file__).parent / "data" / "P5.docx"
+data_dir = Path(__file__).parent / "data"
+file = data_dir / "P5.docx"
+export_file = data_dir / "P5_exported.xlsx"
 
 # create an instance
 i = Interview(file)
@@ -87,6 +89,6 @@ print(map)
 i.show(10)
 
 # export as an xlsx 
-i.to_xlsx("P5_anonymized.xlsx", include_enriched=False)
+i.to_xlsx(export_file, include_enriched=False)
 
 
