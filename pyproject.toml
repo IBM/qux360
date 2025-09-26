@@ -1,0 +1,31 @@
+[project]
+name = "pyqual"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Werner Geyer",email = "werner.geyer@us.ibm.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12,<4.0"
+dependencies = [
+    "pandas (>=2.3.2,<3.0.0)",
+    "openpyxl (>=3.1.5,<4.0.0)",
+    "python-docx (>=1.2.0,<2.0.0)",
+    "webvtt-py (>=0.5.1,<0.6.0)",
+    "mellea (>=0.0.6,<0.0.7)"
+]
+
+[tool.poetry]
+packages = [
+    { include = "pyqual", from = "src" }
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "pytest (>=8.4.2,<9.0.0)"
+]
