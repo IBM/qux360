@@ -86,6 +86,7 @@ print(map)
 # let's see how it looks like
 i.show(10)
 
-
+# export as an xlsx 
+i.to_xlsx("P5_anonymized.xlsx", include_enriched=False)
 
 

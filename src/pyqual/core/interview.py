@@ -83,13 +83,49 @@ class Interview:
             self.transcript.at[row, "codes"] = []
         self.transcript.at[row, "codes"].append(code)
 
-    def to_csv(self, path: str, raw: bool = False):
-        df = self.transcript_raw if raw else self.transcript
-        df.to_csv(path, index=False)
+    def to_xlsx(self, path: str, include_enriched: bool = True):
+        """
+        Export transcript to a well-formatted Excel file using XlsxWriter.
 
-    def to_xlsx(self, path: str, raw: bool = False):
-        df = self.transcript_raw if raw else self.transcript
-        df.to_excel(path, index=False)
+        Parameters
+        ----------
+        path : str
+            Path to save the Excel file.
+        include_enriched : bool, default=True
+            If False, excludes speaker_id, codes, themes.
+        """
+        df = self.transcript.copy()
+
+        # Drop enrichment columns if not requested
+        if not include_enriched:
+            drop_cols = ["speaker_id", "codes", "themes"]
+            df = df[[c for c in df.columns if c not in drop_cols]]
+
+        with pd.ExcelWriter(path, engine="xlsxwriter") as writer:
+            df.to_excel(writer, sheet_name="Transcript", index=False)
+            ws = writer.sheets["Transcript"]
+
+            # Define column formats
+            workbook = writer.book
+            wrap_top = workbook.add_format({"text_wrap": True, "valign": "top"})
+
+            # Column width spec
+            col_widths = {
+                "timestamp": 10,
+                "speaker_id": 10,
+                "speaker": 25,
+                "statement": 60,
+                "codes": 20,
+                "themes": 20,
+            }
+
+            # Apply formatting
+            for idx, col in enumerate(df.columns):
+                width = col_widths.get(col, 20)
+                ws.set_column(idx, idx, width, wrap_top)
+
+            # Freeze header row
+            ws.freeze_panes(1, 0)
 
     def show(self, n: int = 5, speaker: Optional[str] = None, width: int = 60):
         """Pretty-print transcript preview in a clean 3-column layout."""
