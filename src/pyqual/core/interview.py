@@ -18,7 +18,7 @@ class Interview:
         """
         Initialize an Interview.
 
-        - Always generates a unique UUID-based id (no overrides).
+        - Always generates a unique UUID-based id.
         - If a file is provided, it is parsed into a transcript DataFrame.
         - Keeps both raw (immutable) and working (mutable) transcripts.
         """
@@ -30,7 +30,7 @@ class Interview:
         self.speaker_mapping = None
 
     def __repr__(self):
-        return f"<Interview {self.id}, {len(self.transcript)} rows>"
+        return f"<Interview {self.id}, {len(self.transcript)} turns, metadata={self.metadata}>"
     
     def _empty_transcript(self):
         return pd.DataFrame(columns=[
@@ -197,6 +197,7 @@ class Interview:
 
             if predicted2:
                 if predicted1 == predicted2:
+                    self.metadata["participant_id"] = predicted1
                     return predicted1  # agreement
                 else:
                     return {
@@ -292,6 +293,12 @@ class Interview:
 
         self.transcript["speaker"] = self.transcript["speaker"].map(mapping)
         self.speaker_mapping = mapping
+
+        # Update participant_id in metadata if already set
+        pid = self.metadata.get("participant_id")
+        if pid and pid in mapping:
+            self.metadata["participant_id"] = mapping[pid]
+
         return mapping
 
     def anonymize_statements(self, replacements: dict) -> None:
@@ -339,6 +346,38 @@ class Interview:
                 composed[original] = current
         self.speaker_mapping = composed
 
+         # Update participant_id in metadata if necessary
+        pid = self.metadata.get("participant_id")
+        if pid == old:
+            self.metadata["participant_id"] = new
+
         return self.speaker_mapping
 
+    def set_participant_id(self, pid: str) -> None:
+        """
+        Set or update the participant_id in metadata.
 
+        - If `pid` matches a speaker in the transcript, it is stored directly.
+        - If a speaker_mapping exists and `pid` matches an *original* name,
+        it is translated to the current anonymized/renamed label.
+        """
+        if "speaker" not in self.transcript.columns:
+            raise ValueError("Transcript has no 'speaker' column.")
+
+        # Case 1: pid matches a current label in transcript
+        if pid in self.transcript["speaker"].unique():
+            self.metadata["participant_id"] = pid
+            return
+
+        # Case 2: pid matches an original name in speaker_mapping
+        if hasattr(self, "speaker_mapping") and pid in self.speaker_mapping:
+            self.metadata["participant_id"] = self.speaker_mapping[pid]
+            return
+
+        raise ValueError(
+            f"Participant ID '{pid}' not found in transcript or speaker mapping."
+        )
+
+    def get_participant_id(self) -> str | None:
+        """Return participant_id if set in metadata."""
+        return self.metadata.get("participant_id")
