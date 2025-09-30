@@ -6,6 +6,7 @@ import uuid
 import spacy
 from mellea import MelleaSession
 from mellea.stdlib.sampling import RejectionSamplingStrategy
+from pyqual.core.iffy import IffyIndex
 
 from ..io.docx_parser import parse_docx
 from ..io.xlsx_parser import parse_xlsx
@@ -158,73 +159,98 @@ class Interview:
         )
         return speakers
 
-    def identify_interviewee(self, m: Optional[MelleaSession] = None) -> str | dict | None:
+ 
+    def identify_interviewee(self, m: Optional[MelleaSession] = None) -> tuple[str | None, IffyIndex]:
         """
-        Identify the likely interviewee via heuristic and/or LLM. 
+        Identify the likely interviewee via heuristic and/or LLM.
+        Returns a tuple: (predicted interviewee, IffyIndex).
         """
+
+        def compute_iffy_index(predicted1: str, predicted2: str | None, ratio: float) -> IffyIndex:
+            """Sub-function to compute reliability index for interviewee prediction."""
+
+            if predicted2 is None:  # heuristic only
+                if ratio >= 0.70:
+                    status = "ok"
+                elif ratio >= 0.60:
+                    status = "check"
+                else:
+                    status = "iffy"
+                return IffyIndex(
+                    status=status,
+                    explanation=f"Heuristic only: {predicted1} has {ratio:.0%} of words."
+                )
+
+            if predicted1 == predicted2:  # agreement
+                status = "ok" if ratio >= 0.60 else "check"
+                return IffyIndex(
+                    status=status,
+                    explanation=f"Heuristic and LLM agreed on {predicted1} ({ratio:.0%} of words)."
+                )
+
+            # disagreement
+            if ratio >= 0.80:
+                status = "ok"
+            elif ratio >= 0.70:
+                status = "check"
+            else:
+                status = "iffy"
+
+            return IffyIndex(
+                status=status,
+                explanation=f"Heuristic chose {predicted1} ({ratio:.0%}), but LLM suggested {predicted2}."
+            )
+
+        # Nothing to work on
         if self.transcript.empty or "speaker" not in self.transcript:
-            return None
+            return None, IffyIndex(
+                status="not_assessed",
+                explanation="Transcript is empty or missing 'speaker' column."
+            )
 
         # Heuristic: speaker with most words
         counts = self.transcript.groupby("speaker")["statement"].apply(
             lambda x: x.str.split().str.len().sum()
         )
         predicted1 = counts.idxmax()
+        total_words = counts.sum()
+        ratio = counts[predicted1] / total_words if total_words > 0 else 0.0
         predicted2 = None
 
+        # Optional LLM prediction
         if m:
-            df = self.transcript.head(50)
-            lines = [
-                f"[{row['timestamp']}] {row['speaker']}: "
-                f"{shorten(str(row['statement']), width=120)}"
-                for _, row in df.iterrows()
-            ]
-            snippet = "\n".join(lines)
+            snippet = "\n".join(
+                f"[{row['timestamp']}] {row['speaker']}: {shorten(str(row['statement']), width=120)}"
+                for _, row in self.transcript.head(50).iterrows()
+            )
+            predicted2 = str(m.instruct(
+                """
+                You are given an interview transcript snippet with multiple speakers.
+                One or more speakers are the interviewers (asking questions).
+                One speaker is the interviewee (giving longer answers).
+                Based on the transcript snippet, identify the interviewee by ID (from the speaker column).
 
-            # prompt = f"""
-            # You are given an interview transcript snippet with multiple speakers.
-            # One or more speakers are the interviewers (asking questions).
-            # One speaker is the interviewee (giving longer answers).
-            # Based on the transcript, identify the interviewee by ID (from the speaker column).
+                Transcript Snippet:
+                {{snippet}}
 
-            # Transcript Snippet:
-            # {snippet}
+                Question: Who is the interviewee?
+                """,
+                requirements=[
+                    "The answer should ONLY contain the speaker ID exactly as shown in the speaker column",
+                    "There should be no explanation"
+                ],
+                strategy=RejectionSamplingStrategy(loop_budget=2),
+                user_variables={"snippet": snippet}
+            )).strip()
 
-            # Question: Who is the interviewee?
-            # Answer ONLY with the speaker ID exactly as shown in the snippet in the speaker column. Do not add an explanation.
-            # """
+        # --- Reliability scoring ---
+        iffiness = compute_iffy_index(predicted1, predicted2, ratio)
 
-            predicted2 = str(m.instruct(  
-            """
-            You are given an interview transcript snippet with multiple speakers.
-            One or more speakers are the interviewers (asking questions).
-            One speaker is the interviewee (giving longer answers).
-            Based on the transcript snippet, identify the interviewee by ID (from the speaker column).
+        # --- Metadata update only if trust is sufficient ---
+        if iffiness.status in ("ok", "check"):
+            self.metadata["participant_id"] = predicted1
 
-            Transcript Snippet:
-            {{snippet}}
-
-            Question: Who is the interviewee? 
-            """,     
-            requirements=["The answer should ONLY contain the speaker ID exactly as shown in the speaker column", "There should be no explanation"],
-            strategy=RejectionSamplingStrategy(loop_budget=2),    
-            user_variables={"snippet" : snippet})).strip()
-
-
-            if predicted2:
-                if predicted1 == predicted2:
-                    self.metadata["participant_id"] = predicted1
-                    return predicted1  # agreement
-                else:
-                    return {
-                        "heuristic": predicted1,
-                        "llm": predicted2,
-                        "status": "conflict"
-                    }
-            else:
-                return predicted1
-
-        return predicted1
+        return predicted1, iffiness
 
     def detect_entities(self, model: str = "en_core_web_trf", verbose: bool = False) -> list[dict]:
         """

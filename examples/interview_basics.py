@@ -9,6 +9,7 @@ import os
 load_dotenv()
 
 m = MelleaSession(backend=WatsonxAIBackend(model_id=os.getenv("MODEL_ID")))
+
 data_dir = Path(__file__).parent / "data"
 file = data_dir / "P5.docx"
 export_file = data_dir / "P5_exported.xlsx"
@@ -77,8 +78,9 @@ i.show(10)
 
 # use heuristics and AI to find interviewee
 print("\nIdentifying interviewee:")
-interviewee = i.identify_interviewee(m)
-print (f"Interviewee: {interviewee}")
+interviewee, iffy = i.identify_interviewee()
+print(f"Interviewee: {interviewee}")
+print(f"IffyIndex:", str(iffy))
 
 # rename the interviewee to pa participant name, e.g. P5
 print("\nRenaming interviewee:")
