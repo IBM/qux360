@@ -5,6 +5,7 @@ from textwrap import shorten
 import uuid
 import spacy
 from mellea import MelleaSession
+from mellea.stdlib.sampling import RejectionSamplingStrategy
 
 from ..io.docx_parser import parse_docx
 from ..io.xlsx_parser import parse_xlsx
@@ -180,20 +181,35 @@ class Interview:
             ]
             snippet = "\n".join(lines)
 
-            prompt = f"""
+            # prompt = f"""
+            # You are given an interview transcript snippet with multiple speakers.
+            # One or more speakers are the interviewers (asking questions).
+            # One speaker is the interviewee (giving longer answers).
+            # Based on the transcript, identify the interviewee by ID (from the speaker column).
+
+            # Transcript Snippet:
+            # {snippet}
+
+            # Question: Who is the interviewee?
+            # Answer ONLY with the speaker ID exactly as shown in the snippet in the speaker column. Do not add an explanation.
+            # """
+
+            predicted2 = str(m.instruct(  
+            """
             You are given an interview transcript snippet with multiple speakers.
             One or more speakers are the interviewers (asking questions).
             One speaker is the interviewee (giving longer answers).
-            Based on the transcript, identify the interviewee by ID (from the speaker column).
+            Based on the transcript snippet, identify the interviewee by ID (from the speaker column).
 
             Transcript Snippet:
-            {snippet}
+            {{snippet}}
 
-            Question: Who is the interviewee?
-            Answer ONLY with the speaker ID exactly as shown in the snippet in the speaker column. Do not add an explanation.
-            """
+            Question: Who is the interviewee? 
+            """,     
+            requirements=["The answer should ONLY contain the speaker ID exactly as shown in the speaker column", "There should be no explanation"],
+            strategy=RejectionSamplingStrategy(loop_budget=2),    
+            user_variables={"snippet" : snippet})).strip()
 
-            predicted2 = m.chat(prompt).content.strip()
 
             if predicted2:
                 if predicted1 == predicted2:

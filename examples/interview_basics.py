@@ -88,7 +88,13 @@ print(map)
 # let's see how it looks like
 i.show(10)
 
+# show the object
+print("\nInterview:")
+print(i)
+
+
 # export as an xlsx 
+print("\nExporting as: " + str(export_file))
 i.to_xlsx(export_file, include_enriched=False)
 
 
