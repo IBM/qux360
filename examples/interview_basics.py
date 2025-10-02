@@ -11,8 +11,9 @@ load_dotenv()
 m = MelleaSession(backend=WatsonxAIBackend(model_id=os.getenv("MODEL_ID")))
 
 data_dir = Path(__file__).parent / "data"
-file = data_dir / "P5.docx"
-export_file = data_dir / "P5_exported.xlsx"
+file = data_dir / "interview_A.docx"
+export_file = data_dir / "interview_A_exported.xlsx"
+participant_id = "P1"
 
 # create an instance
 i = Interview(file)
@@ -84,7 +85,7 @@ print(f"IffyIndex:", str(iffy))
 
 # rename the interviewee to pa participant name, e.g. P5
 print("\nRenaming interviewee:")
-map = i.rename_speaker(interviewee, "P5")
+map = i.rename_speaker(interviewee, participant_id)
 print(map)
 
 # let's see how it looks like

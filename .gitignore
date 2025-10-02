@@ -3,5 +3,4 @@ __pycache__/
 .env
 .venv
 poetry.lock
-examples/data
 Makefile

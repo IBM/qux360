@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 from pathlib import Path
 from typing import Optional, Union
@@ -42,6 +43,9 @@ class Interview:
     def _init_transcript(self, file):
         if not file:
             return self._empty_transcript()
+        
+        if not os.path.exists(file):
+            raise FileNotFoundError(f"❌ File not found: {file}")
 
         ext = Path(file).suffix.lower()
         if ext == ".docx":
