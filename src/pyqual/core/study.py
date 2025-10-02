@@ -20,7 +20,7 @@ class Study:
             Currently must be Interview
         """
         if doc_cls is not Interview:
-            raise ValueError("Corpus currently only supports Interview documents.")
+            raise ValueError("Study currently only supports Interview documents.")
 
         self.id = f"study_{uuid.uuid4().hex[:8]}"
         self.doc_cls = doc_cls 
@@ -72,7 +72,7 @@ class Study:
         """
         results = {}
         for doc in self.documents:
-            predicted = doc.identify_interviewee(m=m)
+            predicted,_ = doc.identify_interviewee(m=m)
             results[doc.id] = predicted
     
         return results
