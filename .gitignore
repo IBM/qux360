@@ -4,3 +4,4 @@ __pycache__/
 .venv
 poetry.lock
 Makefile
+examples/data/*_exported.xlsx

@@ -8,6 +8,7 @@ import spacy
 from mellea import MelleaSession
 from mellea.stdlib.sampling import RejectionSamplingStrategy
 from pyqual.core.iffy import IffyIndex
+import copy
 
 from ..io.docx_parser import parse_docx
 from ..io.xlsx_parser import parse_xlsx
@@ -30,7 +31,7 @@ class Interview:
         self.metadata = metadata or {}
         raw = self._init_transcript(file) if file else self._empty_transcript()
         self.transcript_raw = raw
-        self.transcript = raw.copy()
+        self.transcript = copy.deepcopy(raw)
         self.speaker_mapping = None
 
     def __repr__(self):
@@ -75,7 +76,7 @@ class Interview:
     
     def reset_transcript(self):
         """Reset the working transcript back to the raw version."""
-        self.transcript = self.transcript_raw.copy()
+        self.transcript = copy.deepcopy(self.transcript_raw)
 
     def load_file(self, file: str | Path):
         """
@@ -83,7 +84,7 @@ class Interview:
         """
         raw = self._init_transcript(file)
         self.transcript_raw = raw
-        self.transcript = raw.copy()
+        self.transcript = copy.deepcopy(raw)
 
     def add_code(self, row: int, code: str):
         """Attach a code to a specific row in the working transcript."""
@@ -103,7 +104,7 @@ class Interview:
         include_enriched : bool, default=True
             If False, excludes speaker_id, codes, themes.
         """
-        df = self.transcript.copy()
+        df = copy.deepcopy(self.transcript)
 
         # Drop enrichment columns if not requested
         if not include_enriched:
