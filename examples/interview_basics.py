@@ -2,13 +2,13 @@ from pathlib import Path
 from pyqual.core.interview import Interview
 from mellea import MelleaSession
 from mellea.backends.watsonx import WatsonxAIBackend
-from mellea import MelleaSession
 from dotenv import load_dotenv
 import os
 
 load_dotenv()
 
 m = MelleaSession(backend=WatsonxAIBackend(model_id=os.getenv("MODEL_ID")))
+
 
 data_dir = Path(__file__).parent / "data"
 file = data_dir / "interview_A.csv"
@@ -43,7 +43,7 @@ print(entities)
 print("\nDefault replacements:")
 replacements = i.build_replacement_map(entities)
 print(replacements)
-choice = input("Use as replacements [y/N]: ").strip().lower()
+choice = input("Use as replacements [Y/n]: ").strip().lower()
 if choice == 'n':
 
     # let's go through it and ask the user what they want to do

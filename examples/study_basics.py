@@ -2,7 +2,6 @@ from pathlib import Path
 from pyqual.core.study import Study
 from mellea import MelleaSession
 from mellea.backends.watsonx import WatsonxAIBackend
-from mellea import MelleaSession
 from dotenv import load_dotenv
 import os
 
