@@ -1,0 +1,33 @@
+﻿timestamp,speaker,statement
+0:01,Jordan Lee,"Thanks for joining today, Alex. To start, can you tell me a little about your role at FuturaSoft?"
+0:06,Alex Morgan,"Sure. I’m a product manager at FuturaSoft, a startup based in Denver. I coordinate between engineering, design, and sales to define our product roadmap."
+0:15,Jordan Lee,How long have you been with the company?
+0:18,Alex Morgan,It’s been just over three years. I joined right before the shift to remote work began.
+0:25,Jordan Lee,What was that transition like for you and your team?
+0:28,Alex Morgan,"Challenging at first. We were used to working in the same office, whiteboarding ideas. Suddenly we had to figure out how to replicate that online."
+0:36,Jordan Lee,What tools did you end up relying on the most?
+0:40,Alex Morgan,"Slack for quick communication, Zoom for meetings, and Miro for brainstorming. We also leaned more heavily on Jira to keep track of tasks."
+0:48,Jordan Lee,How has remote work impacted your productivity?
+0:52,Alex Morgan,"Personally, I feel more productive without a daily commute. But as a team, alignment can sometimes take longer since async updates are easy to miss."
+1:00,Jordan Lee,Did you notice any changes in collaboration with designers or engineers?
+1:04,Alex Morgan,Yes. Our designers felt a loss of spontaneous feedback they’d get by stopping at someone’s desk. We had to formalize feedback cycles more strictly.
+1:12,Jordan Lee,How about with customers?
+1:15,Alex Morgan,"Customer interviews actually got easier. People were more open to short video calls instead of hosting on-site visits, which saved time."
+1:23,Jordan Lee,What’s been the biggest personal challenge for you?
+1:27,Alex Morgan,"Separating work from personal life. My home office is in the same space as my living room, so I had to create routines to ‘switch off.’"
+1:35,Jordan Lee,How do you manage your team’s well-being remotely?
+1:38,Alex Morgan,We introduced weekly check-ins where we don’t talk about work. Just casual conversation. It helps rebuild the social fabric.
+1:46,Jordan Lee,Do you think remote work has affected career development at FuturaSoft?
+1:50,Alex Morgan,"Yes, somewhat. It’s harder for junior employees to get mentorship. We’re experimenting with virtual shadowing, but it’s not the same as being side by side."
+1:58,Jordan Lee,Has your leadership style changed since going remote?
+2:02,Alex Morgan,Definitely. I have to be more intentional about communication and clarity. What used to be a quick hallway chat is now a scheduled call or detailed Slack message.
+2:10,Jordan Lee,Have there been any unexpected benefits?
+2:14,Alex Morgan,Access to talent. We hired engineers in Portland and Toronto who we never would have considered before remote work normalized.
+2:22,Jordan Lee,"If you could improve one thing about remote work right now, what would it be?"
+2:26,Alex Morgan,"Better tools for brainstorming. Even with Miro, the energy of a live whiteboard session isn’t quite there."
+2:34,Jordan Lee,Do you see FuturaSoft staying remote-first?
+2:38,Alex Morgan,"Most likely hybrid. Leadership likes the cost savings, but we’re exploring quarterly in-person meetups to strengthen bonds."
+2:46,Jordan Lee,What advice would you give to other product managers adjusting to remote work?
+2:50,Alex Morgan,"Over-communicate. Write things down, share context widely, and assume people will miss some updates. It’s better to repeat yourself than leave gaps."
+2:58,Jordan Lee,"Thanks, Alex. Anything else you’d like to add?"
+3:01,Alex Morgan,"Just that remote work is still evolving. We’re figuring it out as we go, but it’s made me more empathetic as a leader."

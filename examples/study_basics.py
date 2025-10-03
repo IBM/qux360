@@ -12,8 +12,8 @@ m = MelleaSession(backend=WatsonxAIBackend(model_id=os.getenv("MODEL_ID")))
 
 data_dir = Path(__file__).parent / "data"
 
-file1 = data_dir / "interview_A.docx"
-file2 = data_dir / "interview_B.xlsx"
+file1 = data_dir / "interview_A.csv"
+file2 = data_dir / "interview_B.docx"
 file3 = data_dir / "interview_C.xlsx"
 
 study = Study([file1, file2, file3])

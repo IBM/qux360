@@ -11,6 +11,7 @@ from pyqual.core.iffy import IffyIndex
 
 from ..io.docx_parser import parse_docx
 from ..io.xlsx_parser import parse_xlsx
+from ..io.csv_parser import parse_csv
 
 
 class Interview:
@@ -45,13 +46,15 @@ class Interview:
             return self._empty_transcript()
         
         if not os.path.exists(file):
-            raise FileNotFoundError(f"❌ File not found: {file}")
+            raise FileNotFoundError(f"File not found: {file}")
 
         ext = Path(file).suffix.lower()
         if ext == ".docx":
             return parse_docx(file)
         elif ext in (".xls", ".xlsx"):
             return parse_xlsx(file)
+        elif ext == ".csv":
+            return parse_csv(file)
         else:
             raise ValueError(f"Unsupported file format: {ext}")
 
