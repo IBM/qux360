@@ -20,7 +20,7 @@ class Interview:
                  metadata: Optional[dict] = None):
         """
         Initialize an Interview.
-
+        
         - Always generates a unique UUID-based id.
         - If a file is provided, it is parsed into a transcript DataFrame.
         - Keeps both raw (immutable) and working (mutable) transcripts.
@@ -225,7 +225,7 @@ class Interview:
         if m:
             snippet = "\n".join(
                 f"[{row['timestamp']}] {row['speaker']}: {shorten(str(row['statement']), width=120)}"
-                for _, row in self.transcript.head(50).iterrows()
+                for _, row in self.transcript.head(25).iterrows()
             )
             predicted2 = str(m.instruct(
                 """
