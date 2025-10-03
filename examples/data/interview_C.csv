@@ -1,0 +1,31 @@
+﻿timestamp,speaker,statement
+0:01,Jordan Lee,"Thanks for joining today, David. Could you start by describing your role at NovaWorks?"
+0:06,David Kim,"Sure. I’m a backend engineer, mainly working on APIs that power our customer dashboards. I focus on scalability and reliability."
+0:15,Jordan Lee,How did the shift to remote work affect your daily routine?
+0:18,David Kim,"At first it was chaotic. My apartment wasn’t set up for full-time work. Once I got a proper desk and monitor, it felt more manageable."
+0:25,Jordan Lee,How did it impact your collaboration with teammates?
+0:28,David Kim,"Code reviews slowed down. In the office, I could just tap someone’s shoulder. Now I leave comments in GitHub and wait hours for replies."
+0:36,Jordan Lee,What tools became essential?
+0:40,David Kim,"Slack, Zoom, and GitHub of course. We also started using Linear for issue tracking because it’s cleaner than Jira."
+0:48,Jordan Lee,Did remote work affect your productivity?
+0:52,David Kim,"In sprints, yes. Interruptions at home were tough early on. But once I got routines, I actually delivered more consistently."
+1:00,Jordan Lee,How about mentorship opportunities?
+1:04,David Kim,"That’s been the hardest part. As a mid-level engineer, I miss overhearing senior engineers troubleshoot. I learn less by osmosis now."
+1:12,Jordan Lee,How do you compensate for that?
+1:15,David Kim,"I schedule pairing sessions. It’s intentional now. It helps, but it feels more formal than learning naturally in an office."
+1:23,Jordan Lee,Has remote work affected team culture?
+1:27,David Kim,"Yes. We’re more transactional. Less small talk. To fix that, our manager started “virtual game nights” once a month."
+1:35,Jordan Lee,What’s been your biggest personal challenge?
+1:38,David Kim,"Loneliness. I live alone, so days felt repetitive. I had to push myself to join online communities outside of work."
+1:46,Jordan Lee,Do you think remote work changed your career perspective?
+1:50,David Kim,"Definitely. I realized I can work from anywhere, which opens opportunities. But I worry about being overlooked compared to onsite employees."
+1:58,Jordan Lee,What unexpected benefits have you seen?
+2:02,David Kim,"Focus time. With fewer in-person meetings, I can code for longer stretches without interruption."
+2:10,Jordan Lee,How do you see the future of work at NovaWorks?
+2:14,David Kim,Likely hybrid. They plan to keep the office for client meetings but won’t require everyone in daily.
+2:22,Jordan Lee,What improvements would you like in remote engineering tools?
+2:26,David Kim,Better integrations between GitHub and video chat. Sometimes I want to walk through a pull request live while keeping the comments synced.
+2:34,Jordan Lee,What advice would you give to engineers new to remote work?
+2:38,David Kim,"Build structure. Have clear work hours, take breaks, and don’t let Slack dictate your entire day."
+2:46,Jordan Lee,Anything else you’d like to add?
+2:50,David Kim,Remote work taught me independence. But it also showed me the importance of proactive communication. That’s what makes teams succeed remotely.

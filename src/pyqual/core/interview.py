@@ -11,6 +11,7 @@ from pyqual.core.iffy import IffyIndex
 
 from ..io.docx_parser import parse_docx
 from ..io.xlsx_parser import parse_xlsx
+from ..io.csv_parser import parse_csv
 
 
 class Interview:
@@ -20,7 +21,7 @@ class Interview:
                  metadata: Optional[dict] = None):
         """
         Initialize an Interview.
-
+        
         - Always generates a unique UUID-based id.
         - If a file is provided, it is parsed into a transcript DataFrame.
         - Keeps both raw (immutable) and working (mutable) transcripts.
@@ -45,13 +46,15 @@ class Interview:
             return self._empty_transcript()
         
         if not os.path.exists(file):
-            raise FileNotFoundError(f"❌ File not found: {file}")
+            raise FileNotFoundError(f"File not found: {file}")
 
         ext = Path(file).suffix.lower()
         if ext == ".docx":
             return parse_docx(file)
         elif ext in (".xls", ".xlsx"):
             return parse_xlsx(file)
+        elif ext == ".csv":
+            return parse_csv(file)
         else:
             raise ValueError(f"Unsupported file format: {ext}")
 
@@ -225,7 +228,7 @@ class Interview:
         if m:
             snippet = "\n".join(
                 f"[{row['timestamp']}] {row['speaker']}: {shorten(str(row['statement']), width=120)}"
-                for _, row in self.transcript.head(50).iterrows()
+                for _, row in self.transcript.head(25).iterrows()
             )
             predicted2 = str(m.instruct(
                 """
