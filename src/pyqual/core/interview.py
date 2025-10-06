@@ -5,11 +5,14 @@ from typing import Optional, Union
 from textwrap import shorten
 import uuid
 import spacy
+
 from mellea import MelleaSession
 from mellea.stdlib.sampling import RejectionSamplingStrategy
+from mellea.backends.types import ModelOption
 from pyqual.core.iffy import IffyIndex
 import copy
 
+from .models import Topic, TopicList
 from ..io.docx_parser import parse_docx
 from ..io.xlsx_parser import parse_xlsx
 from ..io.csv_parser import parse_csv
@@ -431,3 +434,178 @@ class Interview:
     def get_participant_id(self) -> str | None:
         """Return participant_id if set in metadata."""
         return self.metadata.get("participant_id")
+    
+
+    def suggest_topics_top_down(self, m: MelleaSession, n: Optional[int] = None, explain: bool = True, interview_context = "General") -> TopicList | None:
+        """
+        Suggest overarching themes for the interview using an LLM.
+
+        Parameters
+        ----------
+        m : MelleaSession
+            Active Mellea session for prompting.
+        n : int, optional
+            Desired number of themes to suggest. If None, let the model decide.
+        explain : bool, default=True
+            If True, also request a short explanation for each theme.
+
+        Returns
+        -------
+        list of dict
+            Each dict contains {"theme": str, "explanation": str | None}
+        """
+        import json
+
+        df = self.transcript
+        if df.empty:
+            print("Transcript is empty.")
+            return None
+
+        if "participant_id" not in self.metadata:
+            print("Need participant id for thematic analysis")
+            return None
+
+        # Join transcript into one block
+        text = "\n".join(
+            f"[{row['timestamp']}] {row['speaker']}: {row['statement']}"
+            for _, row in df.iterrows()
+        )
+        
+        # --- Build instructions dynamically ---
+        interviewee = self.metadata["participant_id"]
+        num_req = f"exactly {n} unique topics" if n else "an exhaustive list of unique topics."
+        exp_req = "Each topic must include a detailed explanation and rationale, why it was chosen. More than 1 sentence." if explain else "Explanations must be omitted. Use 'None'."
+
+        prompt = """
+        You are given an interview transcript. Your task is to identify {{num_req}} topics in the statements made by the interviewee {{interviewee}}. Follow the instructions below.
+
+        Interview Transcript:
+        {{text}}
+
+       Instructions:
+        - Only include topics that come directly from the interviewee’s statements.
+        - Each topic should be specific to the context of the overall interview: {{interview_context}}
+        - Avoid generic topics
+        - Each topic: 2–6 words, concise but concrete.
+        - {{exp_req}}      
+        """
+        
+        print("Before")
+
+        response = m.instruct(
+            prompt, 
+            strategy=RejectionSamplingStrategy(loop_budget=3), 
+            user_variables={"interviewee": interviewee, "num_req": num_req, "exp_req": exp_req, "text": text, "interview_context": interview_context},
+            model_options={
+                "temperature": 0.0,
+                "max_tokens": 10000,
+            },
+            format=TopicList,
+            return_sampling_results=True,
+        )
+
+        print("****** Response *****")
+        print(response)
+        print("*****************************************************\n")
+
+
+        try:
+            topics = TopicList.model_validate_json(response._underlying_value)
+            return topics
+        except Exception as e:
+            print("Could not parse LLM output:", e)
+            print("Raw response was:", response)
+            return None
+
+    def suggest_topics_top_down_wx(
+        self,
+        watsonx_model,
+        n: Optional[int] = None,
+        explain: bool = True,
+        interview_context: str = "General"
+    ) -> "TopicList | None":
+        
+        import json
+
+        df = self.transcript
+        if df.empty:
+            print("Transcript is empty.")
+            return None
+
+        if "participant_id" not in self.metadata:
+            print("Need participant id for thematic analysis")
+            return None
+
+        # Join transcript into one block
+        text = "\n".join(
+            f"[{row['timestamp']}] {row['speaker']}: {row['statement']}"
+            for _, row in df.iterrows()
+        )
+
+        # --- Build instructions dynamically ---
+        interviewee = self.metadata["participant_id"]
+        num_req = f"exactly {n} unique topics" if n else "an exhaustive list of unique topics."
+        exp_req = (
+            "Each topic must include a detailed explanation and rationale, why it was chosen. More than 1 sentence."
+            if explain
+            else "Explanations must be omitted. Use 'None'."
+        )
+
+        system_prompt = (
+            "You are an expert qualitative analyst. Your task is to identify themes "
+            "that capture patterns and meaning in interview data."
+        )
+
+        user_prompt = f"""
+    You are given an interview transcript. Your task is to identify {num_req} topics in the statements made by the interviewee "{interviewee}". Follow the instructions below.
+
+    Interview Transcript:
+    {text}
+
+    Instructions:
+    - Only include topics that come directly from the interviewee’s statements.
+    - Each topic should be specific to the context of the overall interview: {interview_context}
+    - Avoid generic topics.
+    - Each topic: 2–6 words, concise but concrete.
+    - {exp_req}
+    - Return your answer as a valid JSON object, no markup, no code fences:
+    {{ "topics": [
+        {{"topic": "TOPIC1", "explanation": "EXPLANATION1"}},
+        {{"topic": "TOPIC2", "explanation": "EXPLANATION2"}},
+        {{"topic": "TOPIC3", "explanation": "EXPLANATION3"}}]
+    }}
+    """
+
+        try:
+            # --- Call the watsonx chat API ---
+            response = watsonx_model.chat(
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                params={
+                    "temperature":0.0,
+                    "max_tokens":5000,
+                }
+            )
+
+            print(json.dumps(response, indent=2))
+
+            output = response["choices"][0]["message"]["content"].strip()
+            print("****** Response *****")
+            print(output)
+            print("*****************************************************\n")
+
+            # --- Attempt to parse as JSON ---
+            try:
+                topics_json = json.loads(output)
+                topics = TopicList.model_validate(topics_json)
+                return topics
+            except Exception as e:
+                print("Could not parse LLM output:", e)
+                print("Raw output was:", output)
+                return None
+
+        except Exception as e:
+            print("Error calling watsonx model:", e)
+            return None
