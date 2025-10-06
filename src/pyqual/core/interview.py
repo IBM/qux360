@@ -497,8 +497,8 @@ class Interview:
             strategy=RejectionSamplingStrategy(loop_budget=3), 
             user_variables={"interviewee": interviewee, "num_req": num_req, "exp_req": exp_req, "text": text, "interview_context": interview_context},
             model_options={
-                "temperature": 0.0,
-                "max_tokens": 10000,
+                ModelOption.TEMPERATURE: 0.0,
+                ModelOption.MAX_NEW_TOKENS: 10000,
             },
             format=TopicList,
             return_sampling_results=True,
