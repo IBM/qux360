@@ -11,7 +11,7 @@ m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID")))
 
 
 data_dir = Path(__file__).parent / "data"
-file = data_dir / "interview_A.csv"
+file = data_dir / "interview_A.xlsx"
 export_file = data_dir / "interview_A_exported.xlsx"
 participant_id = "P1"
 

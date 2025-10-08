@@ -5,6 +5,7 @@ from typing import Optional, Union
 from textwrap import shorten
 import uuid
 import spacy
+import json
 
 from mellea import MelleaSession
 from mellea.stdlib.sampling import RejectionSamplingStrategy
@@ -454,7 +455,6 @@ class Interview:
         list of dict
             Each dict contains {"theme": str, "explanation": str | None}
         """
-        import json
 
         df = self.transcript
         if df.empty:
@@ -497,12 +497,21 @@ class Interview:
             strategy=RejectionSamplingStrategy(loop_budget=3), 
             user_variables={"interviewee": interviewee, "num_req": num_req, "exp_req": exp_req, "text": text, "interview_context": interview_context},
             model_options={
-                ModelOption.TEMPERATURE: 0.0,
-                ModelOption.MAX_NEW_TOKENS: 10000,
+                "max_tokens": 5000,
+                "max_new_tokens": 5000
             },
             format=TopicList,
             return_sampling_results=True,
         )
+
+        #         - Return your answer as a valid JSON object, no markup, no code fences:
+        # {% raw %}
+        # {{ "topics": [
+        #     {{"topic": "TOPIC1", "explanation": "EXPLANATION1"}},
+        #     {{"topic": "TOPIC2", "explanation": "EXPLANATION2"}},
+        #     {{"topic": "TOPIC3", "explanation": "EXPLANATION3"}}]
+        # }}
+        # {% endraw %}
 
         print("****** Response *****")
         print(response)
@@ -517,6 +526,9 @@ class Interview:
             print("Raw response was:", response)
             return None
 
+
+
+
     def suggest_topics_top_down_wx(
         self,
         watsonx_model,
@@ -524,8 +536,6 @@ class Interview:
         explain: bool = True,
         interview_context: str = "General"
     ) -> "TopicList | None":
-        
-        import json
 
         df = self.transcript
         if df.empty:
@@ -544,9 +554,9 @@ class Interview:
 
         # --- Build instructions dynamically ---
         interviewee = self.metadata["participant_id"]
-        num_req = f"exactly {n} unique topics" if n else "an exhaustive list of unique topics."
+        num_req = f"exactly {n} unique high level topics" if n else "as many unique high level topics as appropriate."
         exp_req = (
-            "Each topic must include a detailed explanation and rationale, why it was chosen. More than 1 sentence."
+            "Each topic must include a detailed explanation and rationale, why it was chosen. Between 2 and 3 sentences."
             if explain
             else "Explanations must be omitted. Use 'None'."
         )
@@ -566,7 +576,7 @@ class Interview:
     - Only include topics that come directly from the interviewee’s statements.
     - Each topic should be specific to the context of the overall interview: {interview_context}
     - Avoid generic topics.
-    - Each topic: 2–6 words, concise but concrete.
+    - Each topic name: 2–6 words, concise, concrete, but nuanced.
     - {exp_req}
     - Return your answer as a valid JSON object, no markup, no code fences:
     {{ "topics": [
