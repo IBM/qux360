@@ -1,19 +1,23 @@
 import os
+import logging
 import pandas as pd
 from pathlib import Path
 from typing import Optional, Union
 from textwrap import shorten
 import uuid
 import spacy
+
 from mellea import MelleaSession
 from mellea.stdlib.sampling import RejectionSamplingStrategy
 from pyqual.core.iffy import IffyIndex
 import copy
 
+from .models import TopicList
 from ..io.docx_parser import parse_docx
 from ..io.xlsx_parser import parse_xlsx
 from ..io.csv_parser import parse_csv
 
+logger = logging.getLogger(__name__)
 
 class Interview:
 
@@ -431,3 +435,92 @@ class Interview:
     def get_participant_id(self) -> str | None:
         """Return participant_id if set in metadata."""
         return self.metadata.get("participant_id")
+    
+
+    def suggest_topics_top_down(self, m: MelleaSession, n: Optional[int] = None, explain: bool = True, interview_context = "General") -> TopicList | None:
+        """
+        Suggest overarching themes for the interview using an LLM.
+
+        Parameters
+        ----------
+        m : MelleaSession
+            Active Mellea session for prompting.
+        n : int, optional
+            Desired number of themes to suggest. If None, let the model decide.
+        explain : bool, default=True
+            If True, also request a short explanation for each theme.
+
+        Returns
+        -------
+        list of dict
+            Each dict contains {"theme": str, "explanation": str | None}
+        """
+
+        df = self.transcript
+        if df.empty:
+            print("Transcript is empty.")
+            return None
+
+        if "participant_id" not in self.metadata:
+            print("Need participant id for thematic analysis")
+            return None
+
+        # Join transcript into one block
+        text = "\n".join(
+            f"[{row['timestamp']}] {row['speaker']}: {row['statement']}"
+            for _, row in df.iterrows()
+        )
+        
+        # --- Build instructions dynamically ---
+        interviewee = self.metadata["participant_id"]
+        num_req = f"exactly {n} unique, non-generic" if n else "as many as possible unique, non-generic"
+        exp_req = "Each topic must include a detailed explanation, why it was chosen. More than 1 sentence." if explain else "Explanations must be omitted. Use 'None'."
+
+        prompt = """
+        You are given an interview transcript. Your task is to identify {{num_req}} topics in the statements made by the interviewee {{interviewee}}.
+
+        Interview Transcript:
+        {{text}} 
+        """
+
+        logger.info("Calling Mellea...")
+        requirements=[ 
+                f"Each topic should be specific to the context of the overall interview: {interview_context}",
+                "Each topic should be 2–5 words, concise, concrete, but nuanced.",
+                f"{exp_req}"]
+        
+        response = m.instruct(
+            prompt, 
+            strategy=RejectionSamplingStrategy(loop_budget=1), 
+            user_variables={"interviewee": interviewee, "num_req": num_req, "exp_req": exp_req, "text": text, "interview_context": interview_context},
+            model_options={
+                "max_tokens": 5000,
+                "temperature": 0.0
+            },
+            requirements=requirements,
+            format=TopicList,
+            return_sampling_results=True,
+        )
+
+        if logger.isEnabledFor(logging.DEBUG):
+            print(("****************"))
+            for i, validation_group in enumerate(response.sample_validations, start=1):
+                print(f"\n--- Validation Group {i} ---")
+                for req, res in validation_group:
+                    print(f"Requirement: {req.description or '(no description)'}")
+                    print(f".  Result: {res._result}")
+                    if res.score is not None:
+                        print(f"  🔢 Score: {res.score:.2f}")
+                    if res.reason:
+                        print(f".  Reason: {res.reason}")
+                    if req.check_only:
+                        print(f"  ⚙️  (Check-only requirement)")
+                    print("-" * 40)
+
+        try:
+            topics = TopicList.model_validate_json(response._underlying_value)
+            return topics
+        except Exception as e:
+            print("Could not parse LLM output:", e)
+            print("Raw response was:", response)
+            return None

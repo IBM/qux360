@@ -7,7 +7,7 @@ import os
 
 load_dotenv()
 
-m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID")))
+m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID_LITELLM")))
 
 data_dir = Path(__file__).parent / "data"
 
