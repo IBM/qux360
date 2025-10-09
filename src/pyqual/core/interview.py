@@ -1,23 +1,23 @@
 import os
+import logging
 import pandas as pd
 from pathlib import Path
 from typing import Optional, Union
 from textwrap import shorten
 import uuid
 import spacy
-import json
 
 from mellea import MelleaSession
 from mellea.stdlib.sampling import RejectionSamplingStrategy
-from mellea.backends.types import ModelOption
 from pyqual.core.iffy import IffyIndex
 import copy
 
-from .models import Topic, TopicList
+from .models import TopicList
 from ..io.docx_parser import parse_docx
 from ..io.xlsx_parser import parse_xlsx
 from ..io.csv_parser import parse_csv
 
+logger = logging.getLogger(__name__)
 
 class Interview:
 
@@ -473,50 +473,49 @@ class Interview:
         
         # --- Build instructions dynamically ---
         interviewee = self.metadata["participant_id"]
-        num_req = f"exactly {n} unique topics" if n else "an exhaustive list of unique topics."
-        exp_req = "Each topic must include a detailed explanation and rationale, why it was chosen. More than 1 sentence." if explain else "Explanations must be omitted. Use 'None'."
+        num_req = f"exactly {n} unique, non-generic" if n else "as many as possible unique, non-generic"
+        exp_req = "Each topic must include a detailed explanation, why it was chosen. More than 1 sentence." if explain else "Explanations must be omitted. Use 'None'."
 
         prompt = """
-        You are given an interview transcript. Your task is to identify {{num_req}} topics in the statements made by the interviewee {{interviewee}}. Follow the instructions below.
+        You are given an interview transcript. Your task is to identify {{num_req}} topics in the statements made by the interviewee {{interviewee}}.
 
         Interview Transcript:
-        {{text}}
-
-       Instructions:
-        - Only include topics that come directly from the interviewee’s statements.
-        - Each topic should be specific to the context of the overall interview: {{interview_context}}
-        - Avoid generic topics
-        - Each topic: 2–6 words, concise but concrete.
-        - {{exp_req}}      
+        {{text}} 
         """
-        
-        print("Before")
 
+        logger.info("Calling Mellea...")
+        requirements=[ 
+                f"Each topic should be specific to the context of the overall interview: {interview_context}",
+                "Each topic should be 2–5 words, concise, concrete, but nuanced.",
+                f"{exp_req}"]
+        
         response = m.instruct(
             prompt, 
-            strategy=RejectionSamplingStrategy(loop_budget=3), 
+            strategy=RejectionSamplingStrategy(loop_budget=1), 
             user_variables={"interviewee": interviewee, "num_req": num_req, "exp_req": exp_req, "text": text, "interview_context": interview_context},
             model_options={
                 "max_tokens": 5000,
-                "max_new_tokens": 5000
+                "temperature": 0.0
             },
+            requirements=requirements,
             format=TopicList,
             return_sampling_results=True,
         )
 
-        #         - Return your answer as a valid JSON object, no markup, no code fences:
-        # {% raw %}
-        # {{ "topics": [
-        #     {{"topic": "TOPIC1", "explanation": "EXPLANATION1"}},
-        #     {{"topic": "TOPIC2", "explanation": "EXPLANATION2"}},
-        #     {{"topic": "TOPIC3", "explanation": "EXPLANATION3"}}]
-        # }}
-        # {% endraw %}
-
-        print("****** Response *****")
-        print(response)
-        print("*****************************************************\n")
-
+        if logger.isEnabledFor(logging.DEBUG):
+            print(("****************"))
+            for i, validation_group in enumerate(response.sample_validations, start=1):
+                print(f"\n--- Validation Group {i} ---")
+                for req, res in validation_group:
+                    print(f"Requirement: {req.description or '(no description)'}")
+                    print(f".  Result: {res._result}")
+                    if res.score is not None:
+                        print(f"  🔢 Score: {res.score:.2f}")
+                    if res.reason:
+                        print(f".  Reason: {res.reason}")
+                    if req.check_only:
+                        print(f"  ⚙️  (Check-only requirement)")
+                    print("-" * 40)
 
         try:
             topics = TopicList.model_validate_json(response._underlying_value)
@@ -524,98 +523,4 @@ class Interview:
         except Exception as e:
             print("Could not parse LLM output:", e)
             print("Raw response was:", response)
-            return None
-
-
-
-
-    def suggest_topics_top_down_wx(
-        self,
-        watsonx_model,
-        n: Optional[int] = None,
-        explain: bool = True,
-        interview_context: str = "General"
-    ) -> "TopicList | None":
-
-        df = self.transcript
-        if df.empty:
-            print("Transcript is empty.")
-            return None
-
-        if "participant_id" not in self.metadata:
-            print("Need participant id for thematic analysis")
-            return None
-
-        # Join transcript into one block
-        text = "\n".join(
-            f"[{row['timestamp']}] {row['speaker']}: {row['statement']}"
-            for _, row in df.iterrows()
-        )
-
-        # --- Build instructions dynamically ---
-        interviewee = self.metadata["participant_id"]
-        num_req = f"exactly {n} unique high level topics" if n else "as many unique high level topics as appropriate."
-        exp_req = (
-            "Each topic must include a detailed explanation and rationale, why it was chosen. Between 2 and 3 sentences."
-            if explain
-            else "Explanations must be omitted. Use 'None'."
-        )
-
-        system_prompt = (
-            "You are an expert qualitative analyst. Your task is to identify themes "
-            "that capture patterns and meaning in interview data."
-        )
-
-        user_prompt = f"""
-    You are given an interview transcript. Your task is to identify {num_req} topics in the statements made by the interviewee "{interviewee}". Follow the instructions below.
-
-    Interview Transcript:
-    {text}
-
-    Instructions:
-    - Only include topics that come directly from the interviewee’s statements.
-    - Each topic should be specific to the context of the overall interview: {interview_context}
-    - Avoid generic topics.
-    - Each topic name: 2–6 words, concise, concrete, but nuanced.
-    - {exp_req}
-    - Return your answer as a valid JSON object, no markup, no code fences:
-    {{ "topics": [
-        {{"topic": "TOPIC1", "explanation": "EXPLANATION1"}},
-        {{"topic": "TOPIC2", "explanation": "EXPLANATION2"}},
-        {{"topic": "TOPIC3", "explanation": "EXPLANATION3"}}]
-    }}
-    """
-
-        try:
-            # --- Call the watsonx chat API ---
-            response = watsonx_model.chat(
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                params={
-                    "temperature":0.0,
-                    "max_tokens":5000,
-                }
-            )
-
-            print(json.dumps(response, indent=2))
-
-            output = response["choices"][0]["message"]["content"].strip()
-            print("****** Response *****")
-            print(output)
-            print("*****************************************************\n")
-
-            # --- Attempt to parse as JSON ---
-            try:
-                topics_json = json.loads(output)
-                topics = TopicList.model_validate(topics_json)
-                return topics
-            except Exception as e:
-                print("Could not parse LLM output:", e)
-                print("Raw output was:", output)
-                return None
-
-        except Exception as e:
-            print("Error calling watsonx model:", e)
             return None
