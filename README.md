@@ -1,6 +1,19 @@
 # PyQual  
 
-PyQual is an experimental Python library for **AI-assisted qualitative interview analysis**, with support for transcripts in DOCX/XLSX formats, anonymization, entity detection, and AI-assisted coding.  
+**PyQual** is an experimental Python library for **AI-assisted qualitative analysis**.  
+
+Validation is a **first-class concept** in PyQual — every use of large language models is designed to be transparent, explainable, and open to scrutiny. The goal is to help developers build **trustworthy, interactive qualitative analysis experiences** while retaining flexibility in how they apply PyQual’s built-in quality assurance mechanisms.  
+
+PyQual is built on **[Mellea](https://mellea.ai/)**, a **generative computing library** that provides robust and validated prompting techniques. The current PyQual version supports **interview data with a single participant (interviewee)** only, with plans to expand this scope in future releases.  
+
+**Key capabilities:**  
+- Import interview transcripts in **DOCX**, **XLSX**, or **CSV** formats  
+- Export processed transcripts in **XLSX** or **CSV** formats  
+- **Speaker anonymization**  
+- **Statement anonymization** using **local, privacy-preserving entity detection**  
+- **AI-assisted interviewee detection**  
+- **AI-assisted top-down topic extraction**  
+- **Bulk processing** across collections of interviews (e.g., anonymization)
 
 ---
 
