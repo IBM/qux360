@@ -1,4 +1,5 @@
 import os
+import difflib
 import logging
 import pandas as pd
 from pathlib import Path
@@ -12,7 +13,7 @@ from mellea.stdlib.sampling import RejectionSamplingStrategy
 from pyqual.core.iffy import IffyIndex
 import copy
 
-from .models import TopicList
+from .models import TopicList, Quote
 from ..io.docx_parser import parse_docx
 from ..io.xlsx_parser import parse_xlsx
 from ..io.csv_parser import parse_csv
@@ -436,6 +437,46 @@ class Interview:
         """Return participant_id if set in metadata."""
         return self.metadata.get("participant_id")
     
+    def validate_quote(self, quote: Quote, topic_name: Optional[str] = None) -> Optional[str]:
+        """
+        Validate a single Quote against the interview transcript.
+
+        Parameters
+        ----------
+        quote : Quote
+            The Quote object to validate.
+        topic_name : str, optional
+            The topic name for context (used only in error messages).
+
+        Returns
+        -------
+        str | None
+            Returns None if the quote is valid (exact or near match),
+            otherwise returns a descriptive error message.
+        """
+        df = self.transcript
+
+        def similar(a: str, b: str, threshold: float = 0.8) -> bool:
+            return difflib.SequenceMatcher(None, a, b).ratio() >= threshold
+
+        idx = quote.index
+        quote_text = quote.quote.strip()
+
+        if idx not in df.index:
+            return f"❌ Quote index {idx} not found{f' in topic {topic_name!r}' if topic_name else ''}."
+
+        statement_text = str(df.loc[idx, "statement"])
+
+        if quote_text in statement_text:
+            return None  # ✅ exact substring match
+        elif similar(quote_text, statement_text):
+            return None  # ✅ fuzzy near match
+        else:
+            return (
+                f"⚠️ Mismatch{f' in topic {topic_name!r}' if topic_name else ''} at index {idx}:\n"
+                f"  Quote: \"{quote_text[:80]}...\"\n"
+                f"  Statement: \"{statement_text[:80]}...\""
+            )
 
     def suggest_topics_top_down(self, m: MelleaSession, n: Optional[int] = None, explain: bool = True, interview_context = "General") -> TopicList | None:
         """
@@ -465,42 +506,46 @@ class Interview:
             print("Need participant id for thematic analysis")
             return None
 
-        # Join transcript into one block
+
+        # Build prompt
         text = "\n".join(
-            f"[{row['timestamp']}] {row['speaker']}: {row['statement']}"
-            for _, row in df.iterrows()
+            f"{index} [{row['timestamp']}] {row['speaker']}: {row['statement']}"
+            for index, row in df.iterrows()
         )
-        
-        # --- Build instructions dynamically ---
         interviewee = self.metadata["participant_id"]
         num_req = f"exactly {n} unique, non-generic" if n else "as many as possible unique, non-generic"
-        exp_req = "Each topic must include a detailed explanation, why it was chosen. More than 1 sentence." if explain else "Explanations must be omitted. Use 'None'."
-
+        
         prompt = """
-        You are given an interview transcript. Your task is to identify {{num_req}} topics in the statements made by the interviewee {{interviewee}}.
+        You are given an interview transcript. Your task is to identify {{num_req}} topics in the statements made by the interviewee {{interviewee}}, provide a separate explanation, and separate supporting quotes from the interviewee.
 
         Interview Transcript:
         {{text}} 
         """
 
         logger.info("Calling Mellea...")
+        
         requirements=[ 
                 f"Each topic should be specific to the context of the overall interview: {interview_context}",
                 "Each topic should be 2–5 words, concise, concrete, but nuanced.",
-                f"{exp_req}"]
-        
+                "Each topic must include a detailed explanation, why it was chosen. More than 1 sentence." if explain else "Explanations must be omitted. Use 'None'.",
+                "Each quote must include row number (index), timestamp, and speaker."]
+               
+        print(requirements)
+
         response = m.instruct(
             prompt, 
             strategy=RejectionSamplingStrategy(loop_budget=1), 
-            user_variables={"interviewee": interviewee, "num_req": num_req, "exp_req": exp_req, "text": text, "interview_context": interview_context},
+            user_variables={"interviewee": interviewee, "num_req": num_req, "text": text, "interview_context": interview_context},
             model_options={
-                "max_tokens": 5000,
+                "max_tokens": 10000,
                 "temperature": 0.0
             },
             requirements=requirements,
             format=TopicList,
             return_sampling_results=True,
         )
+        
+        print(response)
 
         if logger.isEnabledFor(logging.DEBUG):
             print(("****************"))
@@ -519,6 +564,25 @@ class Interview:
 
         try:
             topics = TopicList.model_validate_json(response._underlying_value)
+            print(type(topics))
+            print(type(topics.topics))
+            for i, t in enumerate(topics.topics):
+                print(i, type(t), t)
+
+            errors = []
+            for topic in topics.topics:
+                for quote in topic.quotes:
+                    err = self.validate_quote(quote, topic_name=topic.topic)
+                    if err:
+                        errors.append(err)
+
+            if errors:
+                print(f"Found {len(errors)} validation issues:")
+                for e in errors:
+                    print(e)
+            else:
+                print("✅ All quotes validated successfully.")
+
             return topics
         except Exception as e:
             print("Could not parse LLM output:", e)

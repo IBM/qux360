@@ -36,5 +36,6 @@ if result:
     for idx, topic in enumerate(result.topics, start=1):
         print(f"{idx}. {topic.topic}")
         print(f"   → {topic.explanation}\n")
+        print(f"   → {topic.quotes}\n")
 else:
     print("⚠️ No topics returned")
