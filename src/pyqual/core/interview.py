@@ -434,7 +434,7 @@ class Interview:
         )
 
     def get_participant_id(self) -> str | None:
-        """Return participant_id if set in metadata."""
+        """Return participant_id from metadata."""
         return self.metadata.get("participant_id")
     
     def validate_quote(self, quote: Quote, topic_name: Optional[str] = None) -> Optional[str]:
@@ -478,25 +478,22 @@ class Interview:
                 f"  Statement: \"{statement_text[:80]}...\""
             )
 
-    def suggest_topics_top_down(self, m: MelleaSession, n: Optional[int] = None, explain: bool = True, interview_context = "General") -> TopicList | None:
+    def suggest_topics_top_down(self, m: MelleaSession, n: Optional[int] = None, explain: bool = True, interview_context: Optional[str] = "General") -> TopicList | None:
         """
-        Suggest overarching themes for the interview using an LLM.
+        Suggest overarching topics for the interview using an LLM.
 
-        Parameters
-        ----------
+        **** Parameters
+
         m : MelleaSession
             Active Mellea session for prompting.
         n : int, optional
-            Desired number of themes to suggest. If None, let the model decide.
-        explain : bool, default=True
+            Desired number of topics to suggest. If None, let the model decide.
+        explain : bool, optional, default=True
             If True, also request a short explanation for each theme.
+        interview_context : str, optional, default = "General"
+            Provides context information about the interview to ground topic extraction.
 
-        Returns
-        -------
-        list of dict
-            Each dict contains {"theme": str, "explanation": str | None}
         """
-
         df = self.transcript
         if df.empty:
             print("Transcript is empty.")
@@ -545,10 +542,11 @@ class Interview:
             return_sampling_results=True,
         )
         
-        print(response)
-
-        if logger.isEnabledFor(logging.DEBUG):
-            print(("****************"))
+        if logger.isEnabledFor(logging.INFO):
+            print(("*** Response"))
+            
+            print(response)
+            print(("**** Validations"))
             for i, validation_group in enumerate(response.sample_validations, start=1):
                 print(f"\n--- Validation Group {i} ---")
                 for req, res in validation_group:
@@ -564,10 +562,6 @@ class Interview:
 
         try:
             topics = TopicList.model_validate_json(response._underlying_value)
-            print(type(topics))
-            print(type(topics.topics))
-            for i, t in enumerate(topics.topics):
-                print(i, type(t), t)
 
             errors = []
             for topic in topics.topics:

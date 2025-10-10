@@ -8,10 +8,11 @@ from dotenv import load_dotenv
 from mellea.backends.types import ModelOption
 from ibm_watsonx_ai.foundation_models import ModelInference
 import os
+import logging
+logging.getLogger("pyqual.core.interview").setLevel(logging.INFO)
 
 load_dotenv()
 m = MelleaSession(backend=WatsonxAIBackend(model_id=os.getenv("MODEL_ID")))
-
 data_dir = Path(__file__).parent / "data"
 file = data_dir / "interview_A.csv"
 participant_id = "P1"
