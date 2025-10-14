@@ -102,13 +102,13 @@ python examples/interview_basics.py
 
 ---
 
-## 🚀 Quickstart Example  
+## 🚀 Quickstart Example
 
 ```python
 from pyqual.core.interview import Interview
 
 # Load a transcript (DOCX, XLSX, or CSV)
-i = Interview("examples/data/sample_transcript.docx")
+i = Interview("examples/data/interview_A.docx")
 
 # Preview first few rows
 i.show(n=5)
@@ -122,13 +122,13 @@ i.to_xlsx("output_transcript.xlsx", include_enriched=False)
 
 ---
 
-## 🤖 Quickstart: Anonymization & Interviewee Identification  
+## 🤖 Quickstart: Anonymization & Interviewee Identification
 
 ```python
 from pyqual.core.interview import Interview
 
 # Load a transcript
-i = Interview("examples/data/sample_transcript.xlsx")
+i = Interview("examples/data/interview_A.xlsx")
 
 # Step 1: Rename speakers (e.g., Speaker 1 → Participant)
 mapping = i.rename_speaker("Speaker 1", "Participant")
