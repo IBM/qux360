@@ -79,9 +79,10 @@ i.show(10)
 
 # use heuristics and AI to find interviewee
 print("\nIdentifying interviewee:")
-interviewee, iffy = i.identify_interviewee(m)
+result = i.identify_interviewee(m)
+interviewee = result.result
 print(f"Interviewee: {interviewee}")
-print(f"IffyIndex:", str(iffy))
+print(f"Validation:", str(result.validation))
 
 # rename the interviewee to pa participant name, e.g. P5
 print("\nRenaming interviewee:")

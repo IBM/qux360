@@ -11,6 +11,7 @@ import spacy
 from mellea import MelleaSession
 from mellea.stdlib.sampling import RejectionSamplingStrategy
 from pyqual.core.iffy import IffyIndex
+from pyqual.core.validated import Validated
 import copy
 
 from .models import TopicList, Quote
@@ -173,70 +174,74 @@ class Interview:
         return speakers
 
  
-    def identify_interviewee(self, m: Optional[MelleaSession] = None) -> tuple[str | None, IffyIndex]:
+    def identify_interviewee(self, m: Optional[MelleaSession] = None) -> Validated[str | None]:
         """
         Identify the likely interviewee via heuristic and/or LLM.
-        Returns a tuple: (predicted interviewee, IffyIndex).
+
+        Returns a Validated result containing the predicted interviewee and validation assessment.
+
+        Parameters
+        ----------
+        m : Optional[MelleaSession]
+            If provided, uses LLM to validate heuristic prediction
+
+        Returns
+        -------
+        Validated[str | None]
+            Validated result with predicted interviewee and composite validation
+            from heuristic and optional LLM checks
+
+        Examples
+        --------
+        >>> result = interview.identify_interviewee(m)
+        >>> print(result.validation)  # Overall validation
+        >>> print(result.result)  # Predicted interviewee
+        >>> if result.passed_validation():
+        ...     interviewee = result.result
         """
-
-        def compute_iffy_index(predicted1: str, predicted2: str | None, ratio: float) -> IffyIndex:
-            """Sub-function to compute reliability index for interviewee prediction."""
-
-            if predicted2 is None:  # heuristic only
-                if ratio >= 0.70:
-                    status = "ok"
-                elif ratio >= 0.60:
-                    status = "check"
-                else:
-                    status = "iffy"
-                return IffyIndex(
-                    status=status,
-                    explanation=f"Heuristic only: {predicted1} has {ratio:.0%} of words."
-                )
-
-            if predicted1 == predicted2:  # agreement
-                status = "ok" if ratio >= 0.60 else "check"
-                return IffyIndex(
-                    status=status,
-                    explanation=f"Heuristic and LLM agreed on {predicted1} ({ratio:.0%} of words)."
-                )
-
-            # disagreement
-            if ratio >= 0.80:
-                status = "ok"
-            elif ratio >= 0.70:
-                status = "check"
-            else:
-                status = "iffy"
-
-            return IffyIndex(
-                status=status,
-                explanation=f"Heuristic chose {predicted1} ({ratio:.0%}), but LLM suggested {predicted2}."
-            )
-
         # Nothing to work on
         if self.transcript.empty or "speaker" not in self.transcript:
-            return None, IffyIndex(
-                status="not_assessed",
-                explanation="Transcript is empty or missing 'speaker' column."
+            return Validated(
+                result=None,
+                validation=IffyIndex.from_check(
+                    method="data_check",
+                    status="iffy",
+                    explanation="Transcript is empty or missing 'speaker' column"
+                )
             )
 
-        # Heuristic: speaker with most words
+        # Check 1: Heuristic (word count)
         counts = self.transcript.groupby("speaker")["statement"].apply(
             lambda x: x.str.split().str.len().sum()
         )
-        predicted1 = counts.idxmax()
+        predicted_heuristic = counts.idxmax()
         total_words = counts.sum()
-        ratio = counts[predicted1] / total_words if total_words > 0 else 0.0
-        predicted2 = None
+        ratio = counts[predicted_heuristic] / total_words if total_words > 0 else 0.0
 
-        # Optional LLM prediction
+        # Determine heuristic status
+        if ratio >= 0.70:
+            heuristic_status = "ok"
+        elif ratio >= 0.60:
+            heuristic_status = "check"
+        else:
+            heuristic_status = "iffy"
+
+        heuristic_check = IffyIndex.from_check(
+            method="heuristic",
+            status=heuristic_status,
+            explanation=f"{predicted_heuristic} has {ratio:.0%} of words",
+            metadata={"word_ratio": ratio, "prediction": predicted_heuristic}
+        )
+
+        checks = [heuristic_check]
+
+        # Check 2: Optional LLM prediction
         if m:
             snippet = "\n".join(
                 f"[{row['timestamp']}] {row['speaker']}: {shorten(str(row['statement']), width=120)}"
                 for _, row in self.transcript.head(25).iterrows()
             )
-            predicted2 = str(m.instruct(
+            predicted_llm = str(m.instruct(
                 """
                 You are given an interview transcript snippet with multiple speakers.
                 One or more speakers are the interviewers (asking questions).
@@ -256,14 +261,41 @@ class Interview:
                 user_variables={"snippet": snippet}
             )).strip()
 
-        # --- Reliability scoring ---
-        iffiness = compute_iffy_index(predicted1, predicted2, ratio)
+            # Evaluate LLM check based on agreement and heuristic strength
+            if predicted_llm == predicted_heuristic:
+                llm_status = "ok"
+                llm_explanation = f"LLM agreed: {predicted_llm}"
+            else:
+                # Disagreement - but strong heuristic can override
+                if ratio >= 0.80:
+                    llm_status = "ok"
+                    llm_explanation = f"LLM disagreed (suggested {predicted_llm}), but heuristic is strong ({ratio:.0%})"
+                elif ratio >= 0.70:
+                    llm_status = "check"
+                    llm_explanation = f"LLM disagreed (suggested {predicted_llm}), moderate confidence ({ratio:.0%})"
+                else:
+                    llm_status = "iffy"
+                    llm_explanation = f"LLM disagreed (suggested {predicted_llm}), low confidence ({ratio:.0%})"
 
-        # --- Metadata update only if trust is sufficient ---
-        if iffiness.status in ("ok", "check"):
-            self.metadata["participant_id"] = predicted1
+            llm_check = IffyIndex.from_check(
+                method="llm",
+                status=llm_status,
+                explanation=llm_explanation,
+                metadata={"prediction": predicted_llm, "agreement": predicted_llm == predicted_heuristic}
+            )
+            checks.append(llm_check)
 
-        return predicted1, iffiness
+        # Aggregate validation checks
+        overall_validation = IffyIndex.from_checks(checks, aggregation="consensus")
+
+        # Metadata update only if validation passed
+        if overall_validation.status in ("ok", "check"):
+            self.metadata["participant_id"] = predicted_heuristic
+
+        return Validated(
+            result=predicted_heuristic,
+            validation=overall_validation
+        )
 
     def detect_entities(self, model: str = "en_core_web_trf", verbose: bool = False) -> list[dict]:
         """
