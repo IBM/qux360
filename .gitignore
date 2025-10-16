@@ -5,3 +5,4 @@ __pycache__/
 poetry.lock
 Makefile
 examples/data/*_exported.xlsx
+.claude

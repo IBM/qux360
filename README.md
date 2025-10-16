@@ -1,6 +1,19 @@
 # PyQual  
 
-PyQual is an experimental Python library for **AI-assisted qualitative interview analysis**, with support for transcripts in DOCX/XLSX formats, anonymization, entity detection, and AI-assisted coding.  
+**PyQual** is an experimental Python library for **AI-assisted qualitative analysis**.  
+
+Validation is a **first-class concept** in PyQual — every use of large language models is designed to be transparent, explainable, and open to scrutiny. The goal is to help developers build **trustworthy, interactive qualitative analysis experiences** while retaining flexibility in how they apply PyQual’s built-in quality assurance mechanisms.  
+
+PyQual is built on **[Mellea](https://mellea.ai/)**, a **generative computing library** that provides robust and validated prompting techniques. The current PyQual version supports **interview data with a single participant (interviewee)** only, with plans to expand this scope in future releases.  
+
+**Key capabilities:**  
+- Import interview transcripts in **DOCX**, **XLSX**, or **CSV** formats  
+- Export processed transcripts in **XLSX** or **CSV** formats  
+- **Speaker anonymization**  
+- **Statement anonymization** using **local, privacy-preserving entity detection**  
+- **AI-assisted interviewee detection**  
+- **AI-assisted top-down topic extraction**  
+- **Bulk processing** across collections of interviews (e.g., anonymization)
 
 ---
 
@@ -59,17 +72,15 @@ This creates a `.venv` and installs all dependencies.
 
 #### Step 3. Activate the environment
 
-Option A (recommended): activate `.venv` directly  
+Activate `.venv` directly  
 ```bash
 source .venv/bin/activate     # macOS/Linux
+```
+
+```bash
 .venv\Scripts\activate        # Windows
 ```
 
-Option B (alternative): run with Poetry  
-```bash
-poetry run python examples/interview_basics.py
-poetry run pytest -v
-```
 
 #### Step 4. Install a spaCy model (**required for NER/anonymization**)
 
@@ -79,7 +90,20 @@ python -m spacy download en_core_web_trf   # best quality
 python -m spacy download en_core_web_sm    # smaller/faster
 ```
 
-#### Step 5. Verify installation
+#### Step 5. Set up .env
+
+Pyqual uses Mellea as a layer to connect to inference services. You will need to create a .env file in your project root folder, using keys required by Mellea (depending on what models and services you use Mellea with). For example, the following keys in the .env file would allow you to use Mellea with WatsonX directly (through a WatsonXBacken), or through LiteLLM. LiteLLM is supported in Mellea and allows you to use a variety of backends.
+
+```bash
+MODEL_ID_LITELLM=watsonx/meta-llama/llama-3-3-70b-instruct
+MODEL_ID=meta-llama/llama-3-3-70b-instruct
+WATSONX_URL=[your URL]
+WATSONX_API_KEY=[your API key]
+WATSONX_PROJECT_ID=[yourproject ID]
+```
+
+
+#### Step 6. Verify installation
 
 Run the included example:
 
@@ -89,13 +113,13 @@ python examples/interview_basics.py
 
 ---
 
-## 🚀 Quickstart Example  
+## 🚀 Quickstart Example
 
 ```python
 from pyqual.core.interview import Interview
 
 # Load a transcript (DOCX, XLSX, or CSV)
-i = Interview("examples/data/sample_transcript.docx")
+i = Interview("examples/data/interview_A.docx")
 
 # Preview first few rows
 i.show(n=5)
@@ -109,13 +133,13 @@ i.to_xlsx("output_transcript.xlsx", include_enriched=False)
 
 ---
 
-## 🤖 Quickstart: Anonymization & Interviewee Identification  
+## 🤖 Quickstart: Anonymization & Interviewee Identification
 
 ```python
 from pyqual.core.interview import Interview
 
 # Load a transcript
-i = Interview("examples/data/sample_transcript.xlsx")
+i = Interview("examples/data/interview_A.xlsx")
 
 # Step 1: Rename speakers (e.g., Speaker 1 → Participant)
 mapping = i.rename_speaker("Speaker 1", "Participant")
