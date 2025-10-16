@@ -24,19 +24,29 @@ i = Interview(file)
 print("\nTranscript we are working with:")
 i.show(10)
 
-p, _ = i.identify_interviewee()
-print(f"\nInterview participant: {p}")
+result = i.identify_interviewee()
+print(f"\nInterview participant: {result.result}")
+print(f"Validation: {result.validation.status} - {result.validation.explanation}")
 
 # conducting top-down thematic analysis
 print("\nIdentifying and suggesting themes:")
 
-result = i.suggest_topics_top_down(m, interview_context="Remote Work")
+topics_result = i.suggest_topics_top_down(m, interview_context="Remote Work")
 
-
-if result:
-    for idx, topic in enumerate(result.topics, start=1):
-        print(f"{idx}. {topic.topic}")
-        print(f"   → {topic.explanation}\n")
-        print(f"   → {topic.quotes}\n")
+# Access the validated topics
+if topics_result.passed_validation():
+    print(f"\n✅ Topic extraction validated: {topics_result.validation.status}")
+    for idx, topic in enumerate(topics_result.result, start=1):
+        print(f"\n{idx}. {topic.topic}")
+        print(f"   → {topic.explanation}")
+        print(f"   → Quotes: {len(topic.quotes)}")
+        for q in topic.quotes[:2]:  # Show first 2 quotes
+            print(f"      - [{q.index}] {q.quote[:80]}...")
 else:
-    print("⚠️ No topics returned")
+    print(f"⚠️ Topic extraction had issues: {topics_result.validation.explanation}")
+
+# Show per-topic validation details using the built-in method
+topics_result.print_summary(
+    title="Per-Topic Validation Details",
+    item_label="Topic"
+)

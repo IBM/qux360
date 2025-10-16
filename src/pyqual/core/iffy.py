@@ -27,6 +27,8 @@ class IffyIndex:
         Additional validation metadata (e.g., confidence scores, ratios)
     checks : List[IffyIndex]
         Nested validation checks (set for composite results only)
+    informational : bool
+        If True, this check is informational only and won't affect aggregated validation status
     """
     status: Literal["ok", "check", "iffy"]
     explanation: str
@@ -34,6 +36,7 @@ class IffyIndex:
     method: Optional[str] = None
     metadata: Optional[Dict] = None
     checks: List[IffyIndex] = field(default_factory=list)
+    informational: bool = False
 
     @classmethod
     def from_check(
@@ -42,7 +45,8 @@ class IffyIndex:
         status: Literal["ok", "check", "iffy"],
         explanation: str,
         errors: Optional[List[str]] = None,
-        metadata: Optional[Dict] = None
+        metadata: Optional[Dict] = None,
+        informational: bool = False
     ) -> IffyIndex:
         """
         Create an IffyIndex representing a single validation check.
@@ -59,6 +63,8 @@ class IffyIndex:
             Specific validation errors
         metadata : Optional[Dict]
             Additional metadata (e.g., {"confidence": 0.85})
+        informational : bool, default=False
+            If True, this check is informational only and won't affect aggregated status
 
         Returns
         -------
@@ -71,7 +77,8 @@ class IffyIndex:
             errors=errors or [],
             method=method,
             metadata=metadata,
-            checks=[]
+            checks=[],
+            informational=informational
         )
 
     @classmethod
@@ -82,6 +89,9 @@ class IffyIndex:
     ) -> IffyIndex:
         """
         Aggregate multiple IffyIndex results into a composite result.
+
+        Informational checks (informational=True) are included in the checks list
+        but do not affect the aggregated validation status.
 
         Parameters
         ----------
@@ -105,24 +115,31 @@ class IffyIndex:
         if not checks:
             raise ValueError("Cannot aggregate empty checks list")
 
+        # Separate validation checks from informational checks
+        validation_checks = [c for c in checks if not c.informational]
+
+        # If all checks are informational, treat them all as validation checks
+        if not validation_checks:
+            validation_checks = checks
+
         if aggregation == "strictest":
-            # Priority: iffy > check > ok
-            if any(c.status == "iffy" for c in checks):
+            # Priority: iffy > check > ok (only for non-informational checks)
+            if any(c.status == "iffy" for c in validation_checks):
                 status = "iffy"
-                failing = [c.method or "unknown" for c in checks if c.status == "iffy"]
+                failing = [c.method or "unknown" for c in validation_checks if c.status == "iffy"]
                 explanation = f"Failed validation: {', '.join(failing)}"
-            elif any(c.status == "check" for c in checks):
+            elif any(c.status == "check" for c in validation_checks):
                 status = "check"
-                flagged = [c.method or "unknown" for c in checks if c.status == "check"]
+                flagged = [c.method or "unknown" for c in validation_checks if c.status == "check"]
                 explanation = f"Needs review: {', '.join(flagged)}"
             else:
                 status = "ok"
-                explanation = f"All {len(checks)} validation checks passed"
+                explanation = f"All {len(validation_checks)} validation checks passed"
 
         elif aggregation == "consensus":
-            if all(c.status == "ok" for c in checks):
+            if all(c.status == "ok" for c in validation_checks):
                 status = "ok"
-                explanation = f"Consensus: all {len(checks)} checks passed"
+                explanation = f"Consensus: all {len(validation_checks)} checks passed"
             else:
                 status = "check"
                 explanation = "No consensus on validation"
@@ -133,7 +150,7 @@ class IffyIndex:
         return cls(
             status=status,
             explanation=explanation,
-            checks=checks,
+            checks=checks,  # Include all checks (validation + informational)
             method=None,
             metadata=None
         )

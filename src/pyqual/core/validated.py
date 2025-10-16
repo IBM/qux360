@@ -219,3 +219,68 @@ class ValidatedList(Validated[List[T]]):
         if not self.item_validations:
             raise ValueError("No item validations available")
         return list(zip(self.result, self.item_validations))
+
+    def print_summary(self, title: str = "Validation Summary", item_label: str = "Item") -> None:
+        """
+        Print a formatted summary of validation results.
+
+        Displays overall validation status and per-item validation details,
+        including informational checks with special formatting.
+
+        Parameters
+        ----------
+        title : str, default="Validation Summary"
+            Title for the summary section
+        item_label : str, default="Item"
+            Label to use for items (e.g., "Topic", "Quote", "Code")
+
+        Examples
+        --------
+        >>> result.print_summary(title="Topic Validation Summary", item_label="Topic")
+        """
+        print(f"\n{'='*60}")
+        print(f"{title} ({len(self.result)} items)")
+        print(f"{'='*60}")
+
+        if not self.item_validations:
+            print(f"\n{self.validation.icon()} Overall: {self.validation.status.upper()}")
+            print(f"   {self.validation.explanation}")
+            print(f"{'='*60}\n")
+            return
+
+        # Print per-item validation details
+        for i, (item, validation) in enumerate(self.items_with_validations(), 1):
+            status_emoji = {"ok": "✅", "check": "⚠️", "iffy": "❌"}[validation.status]
+
+            # Try to get item name/title (works with objects that have .topic, .name, etc.)
+            item_name = None
+            for attr in ['topic', 'name', 'title', 'label']:
+                if hasattr(item, attr):
+                    item_name = getattr(item, attr)
+                    break
+
+            if item_name:
+                print(f"\n{status_emoji} {item_label} {i}: {item_name} [{validation.status.upper()}]")
+            else:
+                print(f"\n{status_emoji} {item_label} {i} [{validation.status.upper()}]")
+
+            # Show validation checks
+            for check in validation.checks:
+                if check.informational:
+                    # Display informational assessment with special formatting
+                    print(f"   ℹ️  {check.method} (informational):")
+                    if check.metadata:
+                        strengths = check.metadata.get("strengths", "")
+                        weaknesses = check.metadata.get("weaknesses", "")
+                        if strengths:
+                            print(f"      • Strengths: {strengths}")
+                        if weaknesses:
+                            print(f"      • Weaknesses: {weaknesses}")
+                else:
+                    # Display validation check normally
+                    check_emoji = {"ok": "✅", "check": "⚠️", "iffy": "❌"}[check.status]
+                    print(f"   └─ {check_emoji} {check.method}: {check.explanation}")
+
+        print(f"\n{'='*60}")
+        print(f"Overall: {self.validation.status.upper()} - {self.validation.explanation}")
+        print(f"{'='*60}\n")
