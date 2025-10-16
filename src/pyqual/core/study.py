@@ -72,7 +72,7 @@ class Study:
         """
         results = {}
         for doc in self.documents:
-            predicted,_ = doc.identify_interviewee(m=m)
+            predicted = doc.identify_interviewee(m=m)
             results[doc.id] = predicted
     
         return results
