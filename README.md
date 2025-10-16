@@ -86,20 +86,22 @@ source .venv/bin/activate     # macOS/Linux
 
 ```bash
 python -m spacy download en_core_web_trf   # best quality
-# or
+```
+or
+```bash
 python -m spacy download en_core_web_sm    # smaller/faster
 ```
 
-#### Step 5. Set up .env
+#### Step 5. Set up `.env`
 
-Pyqual uses Mellea as a layer to connect to inference services. You will need to create a .env file in your project root folder, using keys required by Mellea (depending on what models and services you use Mellea with). For example, the following keys in the .env file would allow you to use Mellea with WatsonX directly (through a WatsonXBacken), or through LiteLLM. LiteLLM is supported in Mellea and allows you to use a variety of backends.
+Pyqual uses Mellea as a layer to connect to inference services. You will need to create a `.env` file in your project root folder, using keys required by Mellea (depending on what models and services you use Mellea with). For example, the following keys in the `.env` file would allow you to use Mellea with WatsonX directly (through a WatsonXBackend), or through LiteLLM. LiteLLM is supported in Mellea and allows you to use a variety of backends.
 
 ```bash
 MODEL_ID_LITELLM=watsonx/meta-llama/llama-3-3-70b-instruct
 MODEL_ID=meta-llama/llama-3-3-70b-instruct
 WATSONX_URL=[your URL]
 WATSONX_API_KEY=[your API key]
-WATSONX_PROJECT_ID=[yourproject ID]
+WATSONX_PROJECT_ID=[your project ID]
 ```
 
 
