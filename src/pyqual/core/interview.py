@@ -11,6 +11,7 @@ import spacy
 from mellea import MelleaSession
 from mellea.stdlib.sampling import RejectionSamplingStrategy
 from pyqual.core.iffy import IffyIndex
+from pyqual.core.validated import Validated, ValidatedList
 import copy
 
 from .models import TopicList, Quote
@@ -173,70 +174,74 @@ class Interview:
         return speakers
 
  
-    def identify_interviewee(self, m: Optional[MelleaSession] = None) -> tuple[str | None, IffyIndex]:
+    def identify_interviewee(self, m: Optional[MelleaSession] = None) -> Validated[str | None]:
         """
         Identify the likely interviewee via heuristic and/or LLM.
-        Returns a tuple: (predicted interviewee, IffyIndex).
+
+        Returns a Validated result containing the predicted interviewee and validation assessment.
+
+        Parameters
+        ----------
+        m : Optional[MelleaSession]
+            If provided, uses LLM to validate heuristic prediction
+
+        Returns
+        -------
+        Validated[str | None]
+            Validated result with predicted interviewee and composite validation
+            from heuristic and optional LLM checks
+
+        Examples
+        --------
+        >>> result = interview.identify_interviewee(m)
+        >>> print(result.validation)  # Overall validation
+        >>> print(result.result)  # Predicted interviewee
+        >>> if result.passed_validation():
+        ...     interviewee = result.result
         """
-
-        def compute_iffy_index(predicted1: str, predicted2: str | None, ratio: float) -> IffyIndex:
-            """Sub-function to compute reliability index for interviewee prediction."""
-
-            if predicted2 is None:  # heuristic only
-                if ratio >= 0.70:
-                    status = "ok"
-                elif ratio >= 0.60:
-                    status = "check"
-                else:
-                    status = "iffy"
-                return IffyIndex(
-                    status=status,
-                    explanation=f"Heuristic only: {predicted1} has {ratio:.0%} of words."
-                )
-
-            if predicted1 == predicted2:  # agreement
-                status = "ok" if ratio >= 0.60 else "check"
-                return IffyIndex(
-                    status=status,
-                    explanation=f"Heuristic and LLM agreed on {predicted1} ({ratio:.0%} of words)."
-                )
-
-            # disagreement
-            if ratio >= 0.80:
-                status = "ok"
-            elif ratio >= 0.70:
-                status = "check"
-            else:
-                status = "iffy"
-
-            return IffyIndex(
-                status=status,
-                explanation=f"Heuristic chose {predicted1} ({ratio:.0%}), but LLM suggested {predicted2}."
-            )
-
         # Nothing to work on
         if self.transcript.empty or "speaker" not in self.transcript:
-            return None, IffyIndex(
-                status="not_assessed",
-                explanation="Transcript is empty or missing 'speaker' column."
+            return Validated(
+                result=None,
+                validation=IffyIndex.from_check(
+                    method="data_check",
+                    status="iffy",
+                    explanation="Transcript is empty or missing 'speaker' column"
+                )
             )
 
-        # Heuristic: speaker with most words
+        # Check 1: Heuristic (word count)
         counts = self.transcript.groupby("speaker")["statement"].apply(
             lambda x: x.str.split().str.len().sum()
         )
-        predicted1 = counts.idxmax()
+        predicted_heuristic = counts.idxmax()
         total_words = counts.sum()
-        ratio = counts[predicted1] / total_words if total_words > 0 else 0.0
-        predicted2 = None
+        ratio = counts[predicted_heuristic] / total_words if total_words > 0 else 0.0
 
-        # Optional LLM prediction
+        # Determine heuristic status
+        if ratio >= 0.70:
+            heuristic_status = "ok"
+        elif ratio >= 0.60:
+            heuristic_status = "check"
+        else:
+            heuristic_status = "iffy"
+
+        heuristic_check = IffyIndex.from_check(
+            method="heuristic",
+            status=heuristic_status,
+            explanation=f"{predicted_heuristic} has {ratio:.0%} of words",
+            metadata={"word_ratio": ratio, "prediction": predicted_heuristic}
+        )
+
+        checks = [heuristic_check]
+
+        # Check 2: Optional LLM prediction
         if m:
             snippet = "\n".join(
                 f"[{row['timestamp']}] {row['speaker']}: {shorten(str(row['statement']), width=120)}"
                 for _, row in self.transcript.head(25).iterrows()
             )
-            predicted2 = str(m.instruct(
+            predicted_llm = str(m.instruct(
                 """
                 You are given an interview transcript snippet with multiple speakers.
                 One or more speakers are the interviewers (asking questions).
@@ -256,14 +261,41 @@ class Interview:
                 user_variables={"snippet": snippet}
             )).strip()
 
-        # --- Reliability scoring ---
-        iffiness = compute_iffy_index(predicted1, predicted2, ratio)
+            # Evaluate LLM check based on agreement and heuristic strength
+            if predicted_llm == predicted_heuristic:
+                llm_status = "ok"
+                llm_explanation = f"LLM agreed: {predicted_llm}"
+            else:
+                # Disagreement - but strong heuristic can override
+                if ratio >= 0.80:
+                    llm_status = "ok"
+                    llm_explanation = f"LLM disagreed (suggested {predicted_llm}), but heuristic is strong ({ratio:.0%})"
+                elif ratio >= 0.70:
+                    llm_status = "check"
+                    llm_explanation = f"LLM disagreed (suggested {predicted_llm}), moderate confidence ({ratio:.0%})"
+                else:
+                    llm_status = "iffy"
+                    llm_explanation = f"LLM disagreed (suggested {predicted_llm}), low confidence ({ratio:.0%})"
 
-        # --- Metadata update only if trust is sufficient ---
-        if iffiness.status in ("ok", "check"):
-            self.metadata["participant_id"] = predicted1
+            llm_check = IffyIndex.from_check(
+                method="llm",
+                status=llm_status,
+                explanation=llm_explanation,
+                metadata={"prediction": predicted_llm, "agreement": predicted_llm == predicted_heuristic}
+            )
+            checks.append(llm_check)
 
-        return predicted1, iffiness
+        # Aggregate validation checks
+        overall_validation = IffyIndex.from_checks(checks, aggregation="consensus")
+
+        # Metadata update only if validation passed
+        if overall_validation.status in ("ok", "check"):
+            self.metadata["participant_id"] = predicted_heuristic
+
+        return Validated(
+            result=predicted_heuristic,
+            validation=overall_validation
+        )
 
     def detect_entities(self, model: str = "en_core_web_trf", verbose: bool = False) -> list[dict]:
         """
@@ -478,30 +510,55 @@ class Interview:
                 f"  Statement: \"{statement_text[:80]}...\""
             )
 
-    def suggest_topics_top_down(self, m: MelleaSession, n: Optional[int] = None, explain: bool = True, interview_context: Optional[str] = "General") -> TopicList | None:
+    def suggest_topics_top_down(self, m: MelleaSession, n: Optional[int] = None, explain: bool = True, interview_context: Optional[str] = "General") -> ValidatedList:
         """
         Suggest overarching topics for the interview using an LLM.
 
-        **** Parameters
+        Returns a ValidatedList containing topics with dual validation per topic:
+        1. Quote validation (checks if quotes exist verbatim in transcript)
+        2. LLM validation (validates the topic quality/relevance)
 
+        Parameters
+        ----------
         m : MelleaSession
             Active Mellea session for prompting.
         n : int, optional
             Desired number of topics to suggest. If None, let the model decide.
         explain : bool, optional, default=True
             If True, also request a short explanation for each theme.
-        interview_context : str, optional, default = "General"
+        interview_context : str, optional, default="General"
             Provides context information about the interview to ground topic extraction.
 
+        Returns
+        -------
+        ValidatedList[Topic]
+            List of topics with per-topic and overall validation results.
         """
         df = self.transcript
-        if df.empty:
-            print("Transcript is empty.")
-            return None
 
+        # Edge case 1: Empty transcript
+        if df.empty:
+            return ValidatedList(
+                result=[],
+                validation=IffyIndex.from_check(
+                    method="data_check",
+                    status="iffy",
+                    explanation="Transcript is empty"
+                ),
+                item_validations=[]
+            )
+
+        # Edge case 2: Missing participant_id
         if "participant_id" not in self.metadata:
-            print("Need participant id for thematic analysis")
-            return None
+            return ValidatedList(
+                result=[],
+                validation=IffyIndex.from_check(
+                    method="data_check",
+                    status="iffy",
+                    explanation="Missing participant_id in metadata (required for thematic analysis)"
+                ),
+                item_validations=[]
+            )
 
 
         # Build prompt
@@ -563,22 +620,199 @@ class Interview:
         try:
             topics = TopicList.model_validate_json(response._underlying_value)
 
-            errors = []
+            # NEW: Dual validation per topic
+            topic_validations = []
+
             for topic in topics.topics:
+                # Validation Check 1: Quote validation
+                quote_errors = []
                 for quote in topic.quotes:
                     err = self.validate_quote(quote, topic_name=topic.topic)
                     if err:
-                        errors.append(err)
+                        quote_errors.append(err)
 
-            if errors:
-                print(f"Found {len(errors)} validation issues:")
-                for e in errors:
-                    print(e)
+                if not quote_errors:
+                    quote_check = IffyIndex.from_check(
+                        method="quote_validation",
+                        status="ok",
+                        explanation=f"All {len(topic.quotes)} quotes validated successfully"
+                    )
+                elif len(quote_errors) < len(topic.quotes):
+                    quote_check = IffyIndex.from_check(
+                        method="quote_validation",
+                        status="check",
+                        explanation=f"{len(quote_errors)}/{len(topic.quotes)} quotes failed validation",
+                        errors=quote_errors
+                    )
+                else:
+                    quote_check = IffyIndex.from_check(
+                        method="quote_validation",
+                        status="iffy",
+                        explanation=f"All {len(topic.quotes)} quotes failed validation",
+                        errors=quote_errors
+                    )
+
+                # Validation Check 2: LLM validation (NEW)
+                # Ask the LLM to validate the topic quality/relevance
+                validation_prompt = """
+                You extracted the topic "{{topic_name}}" from an interview.
+
+                Topic: {{topic_name}}
+                Explanation: {{explanation}}
+                Supporting Quotes: {{quotes}}
+
+                Interview Context: {{interview_context}}
+
+                Given the information above, evaluate whether this topic is:
+                1. Relevant to the interview context
+                2. Well-supported by the quotes
+
+                Rate the topic quality as: "excellent", "acceptable", or "poor"
+                Provide a brief reason (1 sentence).
+                """
+
+                quotes_text = "\n".join(
+                    f"- [{q.index}] {q.quote[:100]}..."
+                    for q in topic.quotes
+                )
+
+                llm_rating = str(m.instruct(
+                    validation_prompt,
+                    user_variables={
+                        "topic_name": topic.topic,
+                        "explanation": topic.explanation,
+                        "quotes": quotes_text,
+                        "interview_context": interview_context
+                    },
+                    requirements=[
+                        "Answer must start with rating: 'excellent', 'acceptable', or 'poor'",
+                        "Follow the rating with a brief reason (1 sentence)"
+                    ]
+                )).strip().lower()
+
+                # Parse LLM rating
+                if llm_rating.startswith("excellent"):
+                    llm_status = "ok"
+                    llm_explanation = llm_rating
+                elif llm_rating.startswith("acceptable"):
+                    llm_status = "check"
+                    llm_explanation = llm_rating
+                else:  # "poor" or unparseable
+                    llm_status = "iffy"
+                    llm_explanation = llm_rating if llm_rating.startswith("poor") else f"Unexpected LLM response: {llm_rating}"
+
+                llm_check = IffyIndex.from_check(
+                    method="llm_validation",
+                    status=llm_status,
+                    explanation=llm_explanation
+                )
+
+                # Validation Check 3: Informational LLM assessment (strengths/weaknesses)
+                # This check does NOT affect the validation status
+                assessment_prompt = """
+                You extracted the topic "{{topic_name}}" from an interview.
+
+                Topic: {{topic_name}}
+                Explanation: {{explanation}}
+                Supporting Quotes: {{quotes}}
+
+                Interview Context: {{interview_context}}
+
+                Provide a brief assessment of this topic:
+                1. Strengths: What makes this topic valuable or well-extracted? (1-2 sentences)
+                2. Weaknesses: What are potential limitations or concerns? (1-2 sentences)
+
+                Format your response as:
+                Strengths: [your assessment]
+                Weaknesses: [your assessment]
+                """
+
+                assessment = str(m.instruct(
+                    assessment_prompt,
+                    user_variables={
+                        "topic_name": topic.topic,
+                        "explanation": topic.explanation,
+                        "quotes": quotes_text,
+                        "interview_context": interview_context
+                    },
+                    requirements=[
+                        "Response must have two sections: 'Strengths:' and 'Weaknesses:'",
+                        "Each section should be 1-2 sentences",
+                        "Be specific and constructive"
+                    ]
+                )).strip()
+
+                # Parse strengths and weaknesses
+                strengths = ""
+                weaknesses = ""
+                if "Strengths:" in assessment and "Weaknesses:" in assessment:
+                    parts = assessment.split("Weaknesses:")
+                    strengths = parts[0].replace("Strengths:", "").strip()
+                    weaknesses = parts[1].strip() if len(parts) > 1 else ""
+
+                # Store in metadata for informational check
+                assessment_metadata = {
+                    "strengths": strengths,
+                    "weaknesses": weaknesses,
+                    "full_assessment": assessment
+                }
+
+                # Create informational check (doesn't affect validation status)
+                info_check = IffyIndex.from_check(
+                    method="llm_assessment",
+                    status="ok",  # Status is irrelevant since informational=True
+                    explanation=f"Strengths: {strengths[:60]}... | Weaknesses: {weaknesses[:60]}...",
+                    metadata=assessment_metadata,
+                    informational=True
+                )
+
+                # Combine all three checks for this topic
+                # Only quote_check and llm_check affect the validation status
+                # info_check is included but won't impact the aggregated status
+                topic_validation = IffyIndex.from_checks(
+                    [quote_check, llm_check, info_check],
+                    aggregation="strictest"  # Only non-informational checks affect status
+                )
+                topic_validations.append(topic_validation)
+
+            # Create overall validation from all topic validations
+            if topic_validations:
+                overall_validation = IffyIndex.from_checks(
+                    topic_validations,
+                    aggregation="consensus"  # Overall assessment across all topics
+                )
             else:
-                print("✅ All quotes validated successfully.")
+                overall_validation = IffyIndex.from_check(
+                    method="generation",
+                    status="iffy",
+                    explanation="No topics were generated"
+                )
 
-            return topics
+            # Create ValidatedList result
+            validated_result = ValidatedList(
+                result=topics.topics,
+                validation=overall_validation,
+                item_validations=topic_validations
+            )
+
+            # Print summary only when logger is set to INFO level
+            if logger.isEnabledFor(logging.INFO):
+                validated_result.print_summary(
+                    title="Topic Validation Summary",
+                    item_label="Topic"
+                )
+
+            return validated_result
+
         except Exception as e:
-            print("Could not parse LLM output:", e)
-            print("Raw response was:", response)
-            return None
+            # Parse error - return empty ValidatedList with iffy status
+            return ValidatedList(
+                result=[],
+                validation=IffyIndex.from_check(
+                    method="parsing",
+                    status="iffy",
+                    explanation=f"Could not parse LLM output: {str(e)}",
+                    errors=[f"Raw response: {str(response)[:200]}..."]
+                ),
+                item_validations=[]
+            )

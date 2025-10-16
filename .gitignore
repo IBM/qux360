@@ -1,8 +1,9 @@
 .DS_Store
 __pycache__/
+.pytest_cache/
 .env
-.venv
+.venv/
 poetry.lock
 Makefile
 examples/data/*_exported.xlsx
-.claude
+.claude/
