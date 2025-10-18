@@ -7,6 +7,8 @@ from typing import Optional, Union
 from textwrap import shorten
 import uuid
 import spacy
+import time
+from datetime import datetime
 
 from mellea import MelleaSession
 from mellea.stdlib.sampling import RejectionSamplingStrategy
@@ -44,6 +46,7 @@ class Interview:
         self.transcript_raw = self._init_transcript(file, headers=headers, has_headers=has_headers)
         self.transcript = copy.deepcopy(self.transcript_raw)
         self.speaker_mapping = None
+        self.topics_top_down = None
 
 
     def __repr__(self):
@@ -536,6 +539,7 @@ class Interview:
         ValidatedList[Topic]
             List of topics with per-topic and overall validation results.
         """
+        logger.info(f"Starting suggest_topics_top_down for interview {self.id} (n={n}, context={interview_context})")
         df = self.transcript
 
         # Edge case 1: Empty transcript
@@ -578,19 +582,20 @@ class Interview:
         {{text}} 
         """
 
-        logger.info("Calling Mellea...")
-        
-        requirements=[ 
+        logger.info("Calling Mellea for initial topic extraction...")
+
+        requirements=[
                 f"Each topic should be specific to the context of the overall interview: {interview_context}",
-                "Each topic should be 2–5 words, concise, concrete, but nuanced.",
+                "Each topic should be between 2 and 5 words long.",
                 "Each topic must include a detailed explanation, why it was chosen. More than 1 sentence." if explain else "Explanations must be omitted. Use 'None'.",
                 "Each quote must include row number (index), timestamp, and speaker."]
-               
-        print(requirements)
 
+        logger.info(f"Requirements passed in: {requirements}")
+
+        start_time = time.time()
         response = m.instruct(
-            prompt, 
-            strategy=RejectionSamplingStrategy(loop_budget=1), 
+            prompt,
+            strategy=RejectionSamplingStrategy(loop_budget=1),
             user_variables={"interviewee": interviewee, "num_req": num_req, "text": text, "interview_context": interview_context},
             model_options={
                 "max_tokens": 10000,
@@ -600,11 +605,16 @@ class Interview:
             format=TopicList,
             return_sampling_results=True,
         )
-        
-        if logger.isEnabledFor(logging.INFO):
+        elapsed_time = time.time() - start_time
+        logger.info(f"Mellea topic extraction completed in {elapsed_time:.2f} seconds")
+
+        # Print raw response at DEBUG level
+        if logger.isEnabledFor(logging.DEBUG):
             print(("*** Response"))
-            
             print(response)
+
+        # Print validation results at INFO level
+        if logger.isEnabledFor(logging.INFO):
             print(("**** Validations"))
             for i, validation_group in enumerate(response.sample_validations, start=1):
                 print(f"\n--- Validation Group {i} ---")
@@ -621,11 +631,18 @@ class Interview:
 
         try:
             topics = TopicList.model_validate_json(response._underlying_value)
+            logger.info(f"Successfully parsed {len(topics.topics)} topics from LLM response")
+
+            # Populate TopicList metadata
+            topics.interview_id = self.id
+            topics.generated_at = datetime.now().isoformat()
 
             # NEW: Dual validation per topic
             topic_validations = []
+            logger.info("Starting per-topic validation...")
 
-            for topic in topics.topics:
+            for idx, topic in enumerate(topics.topics, start=1):
+                logger.info(f"Validating topic {idx}/{len(topics.topics)}: {topic.topic}")
                 # Validation Check 1: Quote validation
                 quote_errors = []
                 for quote in topic.quotes:
@@ -655,6 +672,7 @@ class Interview:
                     )
 
                 # Validation Check 2: LLM validation (NEW)
+                logger.info(f"  → Running LLM validation for topic: {topic.topic}")
                 # Ask the LLM to validate the topic quality/relevance
                 validation_prompt = """
                 You extracted the topic "{{topic_name}}" from an interview.
@@ -710,6 +728,7 @@ class Interview:
                 )
 
                 # Validation Check 3: Informational LLM assessment (strengths/weaknesses)
+                logger.info(f"  → Running LLM assessment for topic: {topic.topic}")
                 # This check does NOT affect the validation status
                 assessment_prompt = """
                 You extracted the topic "{{topic_name}}" from an interview.
@@ -778,6 +797,7 @@ class Interview:
                 topic_validations.append(topic_validation)
 
             # Create overall validation from all topic validations
+            logger.info("Completed per-topic validation. Creating overall validation summary...")
             if topic_validations:
                 overall_validation = IffyIndex.from_checks(
                     topic_validations,
@@ -797,8 +817,12 @@ class Interview:
                 item_validations=topic_validations
             )
 
-            # Print summary only when logger is set to INFO level
-            if logger.isEnabledFor(logging.INFO):
+            # Cache the TopicList
+            self.topics_top_down = topics
+            logger.info(f"Cached TopicList in interview.topics_top_down")
+
+            # Print summary only when logger is set to DEBUG level
+            if logger.isEnabledFor(logging.DEBUG):
                 validated_result.print_summary(
                     title="Topic Validation Summary",
                     item_label="Topic"

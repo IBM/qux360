@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 
 
 class Quote(BaseModel):
@@ -15,3 +15,16 @@ class Topic(BaseModel):
 
 class TopicList(BaseModel):
     topics: List[Topic]
+    interview_id: Optional[str] = None
+    generated_at: Optional[str] = None
+
+class Theme(BaseModel):
+    title: str
+    description: str
+    explanation: str
+    topics: List[Topic]
+
+class ThemeList(BaseModel):
+    themes: List[Theme]
+    study_id: Optional[str] = None
+    generated_at: Optional[str] = None
