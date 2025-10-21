@@ -3,5 +3,15 @@
     "timestamp": "timestamp",
     "speaker": "speaker",
     "statement": "statement"
+  },
+  "headers_study_1": {
+    "timestamp": "timestamp",
+    "speaker": "speaker",
+    "statement": "statement"
+  },
+  "headers_study_3": {
+    "timestamp": "timestamp",
+    "speaker": "speaker",
+    "statement": "statement"
   }
 }

@@ -9,7 +9,7 @@ class Study:
     A collection of qualitative documents (for now only interviews are supported).
     """
 
-    def __init__(self, files_or_docs=None, metadata=None, doc_cls=Interview, headers: Optional[dict] = None):
+    def __init__(self, files_or_docs=None, metadata=None, doc_cls=Interview, headers: Optional[list[dict]] = None):
         """
         Parameters
         ----------
@@ -31,8 +31,8 @@ class Study:
         self.documents = []
 
         if files_or_docs:
-            for item in files_or_docs:
-                self._add_checked(item, headers=headers)
+            for i, item in enumerate(files_or_docs):
+                self._add_checked(item, headers=headers[i])
 
     def _add_checked(self, file_or_doc, headers: dict):
 
