@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from mellea.backends.types import ModelOption
 from ibm_watsonx_ai.foundation_models import ModelInference
 import os
+import json
 import logging
 logging.getLogger("pyqual.core.interview").setLevel(logging.INFO)
 
@@ -16,9 +17,17 @@ m = MelleaSession(backend=WatsonxAIBackend(model_id=os.getenv("MODEL_ID")))
 data_dir = Path(__file__).parent / "data"
 file = data_dir / "interview_A.csv"
 participant_id = "P1"
+config_file = Path(__file__).parent / "config.json"
 
-# create an instance
-i = Interview(file)
+# loads config file to get the headers names provided by the user
+try:
+    with open(config_file, "r", encoding="utf-8") as f:
+        config = json.load(f)
+    # create an instance with headers config
+    i = Interview(file, headers=config['headers'])
+except:
+    # create an instance without headers config
+    i = Interview(file)
 
 # see what we loaded
 print("\nTranscript we are working with:")

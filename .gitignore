@@ -7,3 +7,4 @@ poetry.lock
 Makefile
 examples/data/*_exported.xlsx
 .claude/
+.vscode/

@@ -4,6 +4,7 @@ from mellea import MelleaSession
 from mellea.backends.litellm import LiteLLMBackend
 from dotenv import load_dotenv
 import os
+import json 
 
 load_dotenv()
 
@@ -14,9 +15,18 @@ data_dir = Path(__file__).parent / "data"
 file = data_dir / "interview_A.xlsx"
 export_file = data_dir / "interview_A_exported.xlsx"
 participant_id = "P1"
+config_file = Path(__file__).parent / "config.json"
 
-# create an instance
-i = Interview(file)
+# loads config file to get the headers names provided by the user
+try:
+    with open(config_file, "r", encoding="utf-8") as f:
+        config = json.load(f)
+    # create an instance with headers config
+    i = Interview(file, headers=config['headers'])
+except:
+    # create an instance without headers config
+    i = Interview(file)
+
 
 # see what we loaded
 i.show(10)

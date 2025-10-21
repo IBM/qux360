@@ -1,0 +1,7 @@
+{
+  "headers": {
+    "timestamp": "timestamp",
+    "speaker": "speaker",
+    "statement": "statement"
+  }
+}
