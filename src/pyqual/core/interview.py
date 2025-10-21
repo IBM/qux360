@@ -26,7 +26,8 @@ class Interview:
     def __init__(self,
                  file: Optional[Union[str, Path]] = None,
                  metadata: Optional[dict] = None,
-                 headers: Optional[dict] = None):
+                 headers: Optional[dict] = None,
+                 has_headers = True):
         """
         Initialize an Interview.
         
@@ -37,7 +38,7 @@ class Interview:
         self.id = f"interview_{uuid.uuid4().hex[:8]}"
         self.metadata = metadata or {}
 
-        raw = self._init_transcript(file, headers=headers)
+        raw = self._init_transcript(file, headers=headers, has_headers=has_headers)
         self.transcript_raw = raw
         self.transcript = copy.deepcopy(raw)
         self.speaker_mapping = None
@@ -51,7 +52,7 @@ class Interview:
             "timestamp", "speaker_id", "speaker", "statement", "codes", "themes"
         ])
 
-    def _init_transcript(self, file, headers: Optional[dict] = None):
+    def _init_transcript(self, file, headers: Optional[dict] = None, has_headers = True):
         if not file:
             return self._empty_transcript()
         
@@ -62,9 +63,9 @@ class Interview:
         if ext == ".docx":
             return parse_docx(file)
         elif ext in (".xls", ".xlsx"):
-            return parse_xlsx(file, headers=headers)
+            return parse_xlsx(file, headers=headers, has_headers=has_headers)
         elif ext == ".csv":
-            return parse_csv(file, headers=headers)
+            return parse_csv(file, headers=headers, has_headers=has_headers)
         else:
             raise ValueError(f"Unsupported file format: {ext}")
 

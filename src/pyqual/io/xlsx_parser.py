@@ -1,29 +1,19 @@
 import pandas as pd
 from typing import Optional
-from .utils import ensure_schema
+from .utils import ensure_schema, process_headers
 
-def parse_xlsx(path: str, headers: Optional[dict] = None) -> pd.DataFrame:
+def parse_xlsx(path: str, headers: Optional[dict] = None, has_headers = True) -> pd.DataFrame:
     """
     Parse an XLSX transcript into the PyQual schema.
     Must contain at least timestamp, speaker, statement.
     """
-    df = pd.read_excel(path)
-
-    if (not headers):
-        print(f"⚠️ Headers not provided in config.json file. Using default headers ['timestamp', 'speaker', 'statement']")
-        headers = {  
-            "timestamp": "timestamp",
-            "speaker": "speaker",
-            "statement": "statement"
-        }
-    try:
-        df = df.rename(columns={
-            headers['timestamp']: "timestamp",
-            headers['speaker']: "speaker",
-            headers['statement']: "statement"
-        })
-    except KeyError as e:
-        raise ValueError(f"Wrong value for headers configuration. Expected values for 'timestamp', 'speaker', 'statement'. Found {e}")
+    if has_headers:
+        df = pd.read_excel(path) # reads the xlsx with header
+        df = process_headers(df, headers) # process the headers according to the provided ones
+    else:
+        print(f"⚠️ File without headers. Adding default headers ['timestamp', 'speaker', 'statement']")
+        df = pd.read_excel(path, header=None) # reads the xslx without header
+        df.columns = ["timestamp", "speaker", "statement"] # add headers
 
     return ensure_schema(df, "xlsx")
 
