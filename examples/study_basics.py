@@ -23,7 +23,7 @@ try:
     with open(config_file, "r", encoding="utf-8") as f:
         config = json.load(f)
     # create an instance with headers config
-    study = Study([file1, file2, file3], headers=[config['headers_study_1'], None, config['headers_study_3']])
+    study = Study([file1, file2, file3], headers=[config['headers_study_1'], None, config['headers_study_3']], has_headers=[True, False, True])
 except ValueError as e:
     raise e
 except:
