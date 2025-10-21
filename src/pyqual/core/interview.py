@@ -88,11 +88,11 @@ class Interview:
         """Reset the working transcript back to the raw version."""
         self.transcript = copy.deepcopy(self.transcript_raw)
 
-    def load_file(self, file: str | Path, headers: Optional[dict] = None):
+    def load_file(self, file: str | Path, headers: Optional[dict] = None, has_headers = True):
         """
         Load a transcript file into the interview (overwrites both raw and working).
         """
-        raw = self._init_transcript(file, headers=headers)
+        raw = self._init_transcript(file, headers=headers, has_headers=has_headers)
         self.transcript_raw = raw
         self.transcript = copy.deepcopy(raw)
 
