@@ -25,6 +25,8 @@ try:
         config = json.load(f)
     # create an instance with headers config
     i = Interview(file, headers=config['headers'])
+except ValueError as e:
+    raise e
 except:
     # create an instance without headers config
     i = Interview(file)

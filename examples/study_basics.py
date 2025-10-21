@@ -4,6 +4,7 @@ from mellea import MelleaSession
 from mellea.backends.litellm import LiteLLMBackend
 from dotenv import load_dotenv
 import os
+import json
 
 load_dotenv()
 
@@ -15,7 +16,19 @@ file1 = data_dir / "interview_A.csv"
 file2 = data_dir / "interview_B.docx"
 file3 = data_dir / "interview_C.xlsx"
 
-study = Study([file1, file2, file3])
+config_file = Path(__file__).parent / "config.json"
+
+# loads config file to get the headers names provided by the user
+try:
+    with open(config_file, "r", encoding="utf-8") as f:
+        config = json.load(f)
+    # create an instance with headers config
+    study = Study([file1, file2, file3], headers=config['headers'])
+except ValueError as e:
+    raise e
+except:
+    # create an instance without headers config
+    study = Study([file1, file2, file3])
 
 # compute all participants automatically (data is not anonymized yet)
 print("\nIdentifying interviewees across all interviews")

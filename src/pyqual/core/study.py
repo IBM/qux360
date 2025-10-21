@@ -1,5 +1,6 @@
 import uuid
 from pathlib import Path
+from typing import Optional
 
 from .interview import Interview
 
@@ -8,7 +9,7 @@ class Study:
     A collection of qualitative documents (for now only interviews are supported).
     """
 
-    def __init__(self, files_or_docs=None, metadata=None, doc_cls=Interview):
+    def __init__(self, files_or_docs=None, metadata=None, doc_cls=Interview, headers: Optional[dict] = None):
         """
         Parameters
         ----------
@@ -18,6 +19,8 @@ class Study:
             Metadata to attach at corpus level.
         doc_cls : class, default=Interview
             Currently must be Interview
+        headers: dict, optional
+            Headers of columns for timestamp, speaker and statements in the documents
         """
         if doc_cls is not Interview:
             raise ValueError("Study currently only supports Interview documents.")
@@ -29,12 +32,12 @@ class Study:
 
         if files_or_docs:
             for item in files_or_docs:
-                self._add_checked(item)
+                self._add_checked(item, headers=headers)
 
-    def _add_checked(self, file_or_doc):
+    def _add_checked(self, file_or_doc, headers: dict):
 
         if isinstance(file_or_doc, (str, Path)):
-            self.documents.append(self.doc_cls(file=file_or_doc))
+            self.documents.append(self.doc_cls(file=file_or_doc, headers=headers))
         elif isinstance(file_or_doc, self.doc_cls):
             self.documents.append(file_or_doc)
         else:
