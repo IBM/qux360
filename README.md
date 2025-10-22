@@ -102,6 +102,7 @@ MODEL_ID=meta-llama/llama-3-3-70b-instruct
 WATSONX_URL=[your URL]
 WATSONX_API_KEY=[your API key]
 WATSONX_PROJECT_ID=[your project ID]
+DISABLE_AIOHTTP_TRANSPORT=True
 ```
 
 
