@@ -1,7 +1,6 @@
 from pathlib import Path
 from pyqual.core.interview import Interview
 from mellea import MelleaSession
-from mellea.backends.watsonx import WatsonxAIBackend
 from mellea.backends.litellm import LiteLLMBackend
 from mellea import MelleaSession
 from dotenv import load_dotenv
@@ -13,7 +12,7 @@ import logging
 logging.getLogger("pyqual.core.interview").setLevel(logging.INFO)
 
 load_dotenv()
-m = MelleaSession(backend=WatsonxAIBackend(model_id=os.getenv("MODEL_ID")))
+m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID_LITELLM")))
 data_dir = Path(__file__).parent / "data"
 file = data_dir / "interview_A.csv"
 participant_id = "P1"
