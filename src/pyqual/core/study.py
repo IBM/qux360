@@ -19,8 +19,10 @@ class Study:
             Metadata to attach at corpus level.
         doc_cls : class, default=Interview
             Currently must be Interview
-        headers: dict, optional
+        headers: list of dict, optional
             Headers of columns for timestamp, speaker and statements in the documents
+        has_headers: list of bool, optional
+            Indicates if each file in files has headers or not. The matching with files is positional.
         """
         if doc_cls is not Interview:
             raise ValueError("Study currently only supports Interview documents.")
