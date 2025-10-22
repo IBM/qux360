@@ -168,7 +168,7 @@ You can contribute to:
 
 ## 📚 Documentation
 
-You can find extensive documentation of the system and the API usage in the [Documentation page](https://github.com/IBM/quax360/wiki).
+You can find extensive documentation of the system and the API usage in the [Documentation page](../../wiki).
 
 
 ## 📜 License  
