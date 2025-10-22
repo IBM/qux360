@@ -1,10 +1,10 @@
-# PyQual  
+# Qux360  
 
-**PyQual** is an experimental Python library for **AI-assisted qualitative analysis**.  
+**Qux360** is an experimental Python library for **AI-assisted qualitative analysis**.  
 
-Validation is a **first-class concept** in PyQual — every use of large language models is designed to be transparent, explainable, and open to scrutiny. The goal is to help developers build **trustworthy, interactive qualitative analysis experiences** while retaining flexibility in how they apply PyQual’s built-in quality assurance mechanisms.  
+Validation is a **first-class concept** in Qux360 — every use of large language models is designed to be transparent, explainable, and open to scrutiny. The goal is to help developers build **trustworthy, interactive qualitative analysis experiences** while retaining flexibility in how they apply Qux360’s built-in quality assurance mechanisms.  
 
-PyQual is built on **[Mellea](https://mellea.ai/)**, a **generative computing library** that provides robust and validated prompting techniques. The current PyQual version supports **interview data with a single participant (interviewee)** only, with plans to expand this scope in future releases.  
+Qux360 is built on **[Mellea](https://mellea.ai/)**, a **generative computing library** that provides robust and validated prompting techniques. The current Qux360 version supports **interview data with a single participant (interviewee)** only, with plans to expand this scope in future releases.  
 
 **Key capabilities:**  
 - Import interview transcripts in **DOCX**, **XLSX**, or **CSV** formats  
@@ -19,7 +19,7 @@ PyQual is built on **[Mellea](https://mellea.ai/)**, a **generative computing li
 
 ## 📦 Installation  
 
-PyQual can be used in two ways:  
+Qux360 can be used in two ways:  
 1. **As a user** (install from PyPI — coming soon).  
 2. **As a developer/contributor** (working with the source repo).  
 
@@ -57,7 +57,7 @@ cd pyqual
 
 🔧 Setting up Poetry
 
-PyQual uses Poetry for dependency and environment management. If you don’t already have it installed, follow the instructions here:
+Qux360 uses Poetry for dependency and environment management. If you don’t already have it installed, follow the instructions here:
 
 
 👉 Poetry Installation Guide: https://python-poetry.org/docs/#installation 
@@ -94,7 +94,7 @@ python -m spacy download en_core_web_sm    # smaller/faster
 
 #### Step 5. Set up `.env`
 
-Pyqual uses Mellea as a layer to connect to inference services. You will need to create a `.env` file in your project root folder, using keys required by Mellea (depending on what models and services you use Mellea with). For example, the following keys in the `.env` file would allow you to use Mellea with WatsonX directly (through a WatsonXBackend), or through LiteLLM. LiteLLM is supported in Mellea and allows you to use a variety of backends.
+Qux360 uses Mellea as a layer to connect to inference services. You will need to create a `.env` file in your project root folder, using keys required by Mellea (depending on what models and services you use Mellea with). For example, the following keys in the `.env` file would allow you to use Mellea with WatsonX directly (through a WatsonXBackend), or through LiteLLM. LiteLLM is supported in Mellea and allows you to use a variety of backends.
 
 ```bash
 MODEL_ID_LITELLM=watsonx/meta-llama/llama-3-3-70b-instruct
@@ -133,7 +133,6 @@ print("Speakers:", i.get_speakers())
 i.to_xlsx("output_transcript.xlsx", include_enriched=False)
 ```
 
----
 
 ## 🤖 Quickstart: Anonymization & Interviewee Identification
 
@@ -156,14 +155,25 @@ interviewee, _ = i.identify_interviewee()
 print("Predicted interviewee:", interviewee)
 ```
 
----
 
 ✅ With these steps, you can load transcripts, anonymize participants, detect sensitive entities, and use LLMs via Mellea to assist in interview analysis.  
 
+--- 
 
----
+## ✏️ Contributing
+
+You can contribute to:
+* Quax360. Look at the [Contribution Guidelines](CONTRIBUTING.md) for more details.
+* [Mellea](https://mellea.ai/). Look at the [Contribution Guidelines](https://github.com/generative-computing/mellea/blob/main/docs/tutorial.md#appendix-contributing-to-mellea) for more details.
+
+## 📚 Documentation
+
+You can find extensive documentation of the system and the API usage in the [Documentation page](https://github.com/IBM/quax360/wiki).
+
 
 ## 📜 License  
 
-PyQual is licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).  
+Qux360 is licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).  
 
+
+## IBM ❤️ Open Source AI
