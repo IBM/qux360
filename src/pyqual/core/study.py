@@ -9,7 +9,7 @@ class Study:
     A collection of qualitative documents (for now only interviews are supported).
     """
 
-    def __init__(self, files_or_docs=None, metadata=None, doc_cls=Interview, headers: Optional[list[dict]] = None, has_headers: Optional[list[bool]]= [True, True, True]):
+    def __init__(self, files_or_docs=None, metadata=None, doc_cls=Interview, headers: Optional[list[dict]] = None, has_headers: Optional[list[bool]]= None):
         """
         Parameters
         ----------
