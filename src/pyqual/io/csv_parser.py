@@ -1,10 +1,18 @@
 import pandas as pd
-from .utils import ensure_schema
+from typing import Optional
+from .utils import ensure_schema, process_headers
 
-def parse_csv(path: str) -> pd.DataFrame:
+def parse_csv(path: str, headers: Optional[dict] = None, has_headers = True) -> pd.DataFrame:
     """
     Parse a CSV transcript into the PyQual schema.
     Must contain at least timestamp, speaker, statement.
     """
-    df = pd.read_csv(path)
+    if has_headers:
+        df = pd.read_csv(path) # reads the csv with header
+        df = process_headers(df, headers) # process the headers according to the provided ones
+    else:
+        print(f"⚠️ File without headers. Adding default headers ['timestamp', 'speaker', 'statement']")
+        df = pd.read_csv(path, header=None) # reads the csv without header
+        df.columns = ["timestamp", "speaker", "statement"] # add headers
+
     return ensure_schema(df, "csv")

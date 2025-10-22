@@ -31,3 +31,23 @@ def ensure_schema(df: pd.DataFrame, source: str) -> pd.DataFrame:
 
     # Reorder into canonical schema
     return df[["timestamp", "speaker_id", "speaker", "statement", "codes", "themes"]]
+
+
+def process_headers(df, headers: dict) -> dict:
+    if (not headers):
+        print(f"⚠️ Headers not provided. Using default headers ['timestamp', 'speaker', 'statement']")
+        headers = {  
+            "timestamp": "timestamp",
+            "speaker": "speaker",
+            "statement": "statement"
+        }
+    try:
+        df = df.rename(columns={
+            headers['timestamp']: "timestamp",
+            headers['speaker']: "speaker",
+            headers['statement']: "statement"
+        })
+    except KeyError as e:
+        raise ValueError(f"Wrong value for headers configuration. Expected values for 'timestamp', 'speaker', 'statement'. Found {e}")
+
+    return df
