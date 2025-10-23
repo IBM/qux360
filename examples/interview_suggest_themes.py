@@ -4,8 +4,6 @@ from mellea import MelleaSession
 from mellea.backends.litellm import LiteLLMBackend
 from mellea import MelleaSession
 from dotenv import load_dotenv
-from mellea.backends.types import ModelOption
-from ibm_watsonx_ai.foundation_models import ModelInference
 import os
 import json
 import logging
@@ -18,17 +16,20 @@ file = data_dir / "interview_A.csv"
 participant_id = "P1"
 config_file = Path(__file__).parent / "config.json"
 
-# loads config file to get the headers names provided by the user
+# [OPTION A] create an instance without headers config (has headers by default)
+i = Interview(file)
+
+# [OPTION B] create an instance with headers config
+'''
 try:
+    # loads config file to get the headers names provided by the user
     with open(config_file, "r", encoding="utf-8") as f:
         config = json.load(f)
     # create an instance with headers config
     i = Interview(file, headers=config['headers'])
 except ValueError as e:
     raise e
-except:
-    # create an instance without headers config
-    i = Interview(file)
+'''
 
 # see what we loaded
 print("\nTranscript we are working with:")

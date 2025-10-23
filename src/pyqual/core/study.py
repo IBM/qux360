@@ -9,7 +9,7 @@ class Study:
     A collection of qualitative documents (for now only interviews are supported).
     """
 
-    def __init__(self, files_or_docs=None, metadata=None, doc_cls=Interview, headers: Optional[list[dict]] = None, has_headers: Optional[list[bool]]= None):
+    def __init__(self, files_or_docs=None, metadata=None, doc_cls=Interview, headers: Optional[list[dict]] = None, has_headers: Optional[list[bool]] = None):
         """
         Parameters
         ----------
@@ -34,12 +34,16 @@ class Study:
 
         if files_or_docs:
             for i, item in enumerate(files_or_docs):
-                self._add_checked(item, headers=headers[i], has_headers=has_headers[i])
+                if headers:
+                    self._add_checked(file_or_doc=item, headers=headers[i], has_headers=has_headers[i])
+                elif has_headers:
+                    self._add_checked(file_or_doc=item, has_headers=has_headers[i])
+                else:
+                    self._add_checked(file_or_doc=item)
 
-    def _add_checked(self, file_or_doc, headers: dict, has_headers: bool):
-
+    def _add_checked(self, file_or_doc, headers: Optional[dict] = None, has_headers: Optional[bool]= True):
         if isinstance(file_or_doc, (str, Path)):
-            self.documents.append(self.doc_cls(file=file_or_doc, headers=headers, has_headers=has_headers))
+            self.documents.append(self.doc_cls(file=file_or_doc, metadata=self.metadata, headers=headers, has_headers=has_headers))
         elif isinstance(file_or_doc, self.doc_cls):
             self.documents.append(file_or_doc)
         else:
@@ -48,9 +52,9 @@ class Study:
                 f"Corpus only supports {self.doc_cls.__name__} objects or file paths."
             )
         
-    def add(self, file_or_doc, doc_cls=Interview):
+    def add(self, file_or_doc, headers: Optional[dict] = None, has_headers: Optional[bool]= True):
         """Add an Interview object or a file path."""
-        self._add_checked(file_or_doc)
+        self._add_checked(file_or_doc=file_or_doc, headers=headers, has_headers=has_headers)
 
 
     def get_interview_by_id(self, interview_id: str):
