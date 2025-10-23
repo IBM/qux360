@@ -5,6 +5,7 @@ from mellea.backends.litellm import LiteLLMBackend
 from dotenv import load_dotenv
 import os
 import json
+from pyqual.core.interview import Interview
 
 load_dotenv()
 
@@ -18,17 +19,28 @@ file3 = data_dir / "interview_C.xlsx"
 
 config_file = Path(__file__).parent / "config.json"
 
-# loads config file to get the headers names provided by the user
+# [OPTION A] create an instance without headers config (has headers by default)
+study = Study([file1, file2, file3])
+
+# [OPTION B] create an instance with headers config
+'''
 try:
+    # loads config file to get the headers names provided by the user
     with open(config_file, "r", encoding="utf-8") as f:
         config = json.load(f)
-    # create an instance with headers config
+
+    # [OPTION B1] create an instance from files with headers config
     study = Study([file1, file2, file3], headers=[config['headers_study_1'], None, config['headers_study_3']], has_headers=[True, False, True])
+
+    # [OPTION B2] create an instance from Interview objects
+    # (given that headers are provided when creating the Interviews, they are not provided when creating the Study)
+    #i1 = Interview(file1, headers=config['headers_study_1'], has_headers=True)
+    #i2 = Interview(file2)
+    #i3 = Interview(file3, headers=config['headers_study_3'], has_headers=True)
+    #study = Study(files_or_docs=[i1, i2, i3])
 except ValueError as e:
     raise e
-except:
-    # create an instance without headers config
-    study = Study([file1, file2, file3])
+'''
 
 # compute all participants automatically (data is not anonymized yet)
 print("\nIdentifying interviewees across all interviews")

@@ -35,7 +35,7 @@ def ensure_schema(df: pd.DataFrame, source: str) -> pd.DataFrame:
 
 def process_headers(df, headers: dict) -> dict:
     if (not headers):
-        print(f"⚠️ Headers not provided. Using default headers ['timestamp', 'speaker', 'statement']")
+        print(f"⚠️ Custom headers not provided. Using default headers ['timestamp', 'speaker', 'statement']")
         headers = {  
             "timestamp": "timestamp",
             "speaker": "speaker",
