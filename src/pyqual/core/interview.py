@@ -19,6 +19,9 @@ from ..io.docx_parser import parse_docx
 from ..io.xlsx_parser import parse_xlsx
 from ..io.csv_parser import parse_csv
 
+from mellea.helpers.fancy_logger import FancyLogger
+FancyLogger.get_logger().setLevel("WARNING")
+
 logger = logging.getLogger(__name__)
 
 class Interview:
