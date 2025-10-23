@@ -38,9 +38,8 @@ class Interview:
         self.id = f"interview_{uuid.uuid4().hex[:8]}"
         self.metadata = metadata or {}
 
-        raw = self._init_transcript(file, headers=headers, has_headers=has_headers)
-        self.transcript_raw = raw
-        self.transcript = copy.deepcopy(raw)
+        self.transcript_raw = self._init_transcript(file, headers=headers, has_headers=has_headers)
+        self.transcript = copy.deepcopy(self.transcript_raw)
         self.speaker_mapping = None
 
 
@@ -92,9 +91,8 @@ class Interview:
         """
         Load a transcript file into the interview (overwrites both raw and working).
         """
-        raw = self._init_transcript(file, headers=headers, has_headers=has_headers)
-        self.transcript_raw = raw
-        self.transcript = copy.deepcopy(raw)
+        self.transcript_raw = self._init_transcript(file, headers=headers, has_headers=has_headers)
+        self.transcript = copy.deepcopy(self.transcript_raw)
 
     def add_code(self, row: int, code: str):
         """Attach a code to a specific row in the working transcript."""
@@ -118,16 +116,14 @@ class Interview:
 
         # Drop enrichment columns if not requested
         if not include_enriched:
-            drop_cols = ["speaker_id", "codes", "themes"]
-            df = df[[c for c in df.columns if c not in drop_cols]]
+            df.drop(columns=["speaker_id", "codes", "themes"], inplace=True)
 
         with pd.ExcelWriter(path, engine="xlsxwriter") as writer:
             df.to_excel(writer, sheet_name="Transcript", index=False)
             ws = writer.sheets["Transcript"]
 
             # Define column formats
-            workbook = writer.book
-            wrap_top = workbook.add_format({"text_wrap": True, "valign": "top"})
+            wrap_top = writer.book.add_format({"text_wrap": True, "valign": "top"})
 
             # Column width spec
             col_widths = {
@@ -141,8 +137,7 @@ class Interview:
 
             # Apply formatting
             for idx, col in enumerate(df.columns):
-                width = col_widths.get(col, 20)
-                ws.set_column(idx, idx, width, wrap_top)
+                ws.set_column(idx, idx, col_widths.get(col, 20), wrap_top)
 
             # Freeze header row
             ws.freeze_panes(1, 0)
@@ -392,7 +387,7 @@ class Interview:
 
         return mapping
 
-    def anonymize_statements(self, replacements: dict) -> None:
+    def anonymize_statements(self, replacements: dict):
 
         if not replacements:
             print("No replacements provided.")
@@ -444,7 +439,7 @@ class Interview:
 
         return self.speaker_mapping
 
-    def set_participant_id(self, pid: str) -> None:
+    def set_participant_id(self, pid: str):
         """
         Set or update the participant_id in metadata.
 
