@@ -2,16 +2,16 @@
 
 ## Overview
 
-PyQual now includes a transparent caching system that dramatically speeds up development and testing by avoiding repeated expensive operations like:
-- File parsing (DOCX/XLSX/CSV)
-- LLM-based topic extraction
-- LLM-based theme analysis
+PyQual includes a transparent caching system that dramatically speeds up development and testing by avoiding repeated expensive operations:
+- ✅ File parsing (DOCX/XLSX/CSV)
+- ✅ LLM-based topic extraction **with full validation results**
+- ❌ Theme analysis (NOT cached - regenerated each run for flexibility)
 
 **Key Features:**
 - ✅ Automatic cache detection and loading
 - ✅ Hash-based cache invalidation (auto-refresh when source files change)
 - ✅ Stores both raw and transformed transcripts
-- ✅ Preserves all metadata, topics, and themes
+- ✅ Caches topic extraction results with complete validation details
 - ✅ Minimal code changes required
 - ✅ Cache files stored separately in `.pyqual_cache/` directories
 
@@ -38,14 +38,21 @@ The cache is stored in `.pyqual_cache/interview_A_state.json` next to the source
 - `transcript` (working copy with transformations)
 - `speaker_mapping` (rename history)
 - `metadata` (including participant_id)
-- `topics_top_down` (cached topic extraction results)
+- `topics_top_down` (TopicList - the extracted topics)
+- `topics_top_down_validation` (IffyIndex - overall validation with nested per-topic validations)
 - Source file hash (for invalidation)
 
 **For Studies:**
 - All interview states (above)
 - `study_context`
-- `themes_top_down` (cached theme analysis results)
 - Study metadata
+- ❌ **NOT cached:** `themes_top_down` (themes regenerated each run)
+
+**Why themes aren't cached:**
+- Theme analysis is relatively fast compared to topic extraction
+- Parameters often change during iteration (n, max_quotes_per_topic, etc.)
+- Themes depend on which topics are included (easy to experiment)
+- Validation framework for themes not yet implemented
 
 ## Usage Examples
 
@@ -86,40 +93,64 @@ study = Study(
 # First run: parses all files
 # Second run: loads all from cache (much faster!)
 
-# Save complete study state (all interviews + themes)
+# Save study state (interviews + topics, but NOT themes)
 study.save_state(Path("study_cache"))
 
-# Load complete study state
+# Load study state (interviews + topics ready for theme analysis)
 study = Study.load_from_cache(Path("study_cache"))
+
+# Themes are NOT cached - run fresh each time
+themes = study.suggest_themes(m, n=3)
 ```
 
 ### 3. Fast Iteration on Theme Analysis
 
 The most powerful use case: extract topics once, iterate on themes many times.
 
-**First run (slow - extracts topics):**
+See `examples/study_suggest_themes_from_cache.py` for a complete example.
+
+**First run (no cache - extracts topics):**
 ```python
+# Automatic caching enabled (default)
 study = Study(files=[...], study_context="...")
-study.identify_interviewees(m)
-study.suggest_topics_all(m, n=5)  # Expensive!
-study.save_state(Path("study_cache"))
+
+# Check if topics need extraction
+if any(i.topics_top_down is None for i in study.documents):
+    # First run: extract topics (expensive!)
+    study.identify_interviewees(m)
+    study.suggest_topics_all(m, n=5)
+
+    # Save to cache for next time
+    for interview in study.documents:
+        interview.save_state()
+
+# Run theme analysis (always runs, not cached)
+themes = study.suggest_themes(m, n=3)
 ```
 
-**Subsequent runs (fast - loads cached topics):**
+**Subsequent runs (cache hit - skips topic extraction):**
 ```python
-# Load everything from cache
-study = Study.load_from_cache(Path("study_cache"))
+# Topics automatically loaded from cache
+study = Study(files=[...], study_context="...")
 
-# Topics already cached - just extract themes
+# Topics already loaded - skip straight to theme analysis
 themes = study.suggest_themes(m, n=3)  # Fast!
 
 # Try different parameters
 themes = study.suggest_themes(m, n=5, max_quotes_per_topic=3)
-
-# Iterate quickly without re-running expensive topic extraction
 ```
 
-See [examples/study_themes_from_cache.py](examples/study_themes_from_cache.py) for a complete example.
+**View cached validation results:**
+```python
+# After loading from cache, reconstruct ValidatedList to see details
+for interview in study.documents:
+    topics_validated = interview.get_topics_validated()
+    if topics_validated:
+        topics_validated.print_summary(
+            title=f"Topics for {interview.get_participant_id()}",
+            item_label="Topic"
+        )
+```
 
 ## Cache File Structure
 
@@ -135,7 +166,24 @@ See [examples/study_themes_from_cache.py](examples/study_themes_from_cache.py) f
   "transcript": [...],
   "speaker_mapping": {"Speaker1": "P1"},
   "metadata": {"participant_id": "P1"},
-  "topics_top_down": {...}
+  "topics_top_down": {
+    "topics": [...],
+    "interview_id": "interview_abc123",
+    "generated_at": "2025-01-15T10:30:00"
+  },
+  "topics_top_down_validation": {
+    "status": "ok",
+    "explanation": "Consensus: all 5 checks passed",
+    "checks": [
+      {
+        "status": "ok",
+        "explanation": "All 3 quotes validated successfully",
+        "method": "quote_validation",
+        "checks": [...]
+      },
+      ...
+    ]
+  }
 }
 ```
 
@@ -143,10 +191,77 @@ See [examples/study_themes_from_cache.py](examples/study_themes_from_cache.py) f
 
 ```
 .study_cache/
-├── study_state.json              # Study-level metadata + themes
-├── interview_abc123_state.json   # Interview 1 state
-├── interview_def456_state.json   # Interview 2 state
-└── interview_ghi789_state.json   # Interview 3 state
+├── study_state.json              # Study-level metadata (NO themes)
+├── interview_abc123_state.json   # Interview 1 state with topics + validation
+├── interview_def456_state.json   # Interview 2 state with topics + validation
+└── interview_ghi789_state.json   # Interview 3 state with topics + validation
+```
+
+**Note:** Themes are NOT included in the study cache and must be regenerated each run.
+
+## Validation Caching
+
+A powerful feature of PyQual's caching system is that it preserves **complete validation results** from topic extraction.
+
+### What Validation Data is Cached
+
+When topics are extracted via `suggest_topics_top_down()`, two types of validation are cached:
+
+1. **Overall validation** (`topics_top_down_validation`): Aggregate status across all topics
+2. **Per-topic validations** (nested in `.checks`): Individual validation for each topic including:
+   - Quote validation (exact/fuzzy match against transcript)
+   - LLM quality assessment
+   - Informational assessments (strengths/weaknesses)
+
+### Accessing Cached Validation
+
+```python
+# Load interview from cache
+interview = Interview("file.csv")  # Auto-loads from cache
+
+# Check if validation was cached
+if interview.topics_top_down_validation:
+    print(f"Validation status: {interview.topics_top_down_validation.status}")
+    print(f"Explanation: {interview.topics_top_down_validation.explanation}")
+
+# Reconstruct full ValidatedList to use print_summary()
+topics_validated = interview.get_topics_validated()
+if topics_validated:
+    topics_validated.print_summary(
+        title="Cached Topics with Validation",
+        item_label="Topic"
+    )
+```
+
+### Why Cache Validation?
+
+- **Transparency**: Know how good your cached topics were when generated
+- **Reproducibility**: Validation results preserved across runs
+- **Debugging**: Check topic quality if theme analysis produces poor results
+- **Audit trail**: Track quality over time and across different model runs
+
+### Example Output
+
+```
+Cached Topics for Alex Morgan (13 items)
+============================================================
+
+⚠️ Overall: CHECK
+   No consensus on validation
+============================================================
+
+Topic 1: Remote Work Challenges
+
+   Explanation: Employees struggle with work-life boundaries...
+
+   Quotes (2):
+      [5] 00:02:15 Alex Morgan:
+      The biggest challenge is knowing when to stop working...
+
+   ✅ Validation: OK
+      ✅ [quote_validation] ok — All 2 quotes validated
+      ✅ [llm_validation] ok — excellent: highly relevant
+      ℹ️  [llm_assessment] ok — Strengths: ... | Weaknesses: ...
 ```
 
 ## Cache Invalidation

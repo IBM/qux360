@@ -33,7 +33,7 @@ logging.basicConfig(
 logging.getLogger("pyqual").setLevel(logging.INFO)
 
 load_dotenv()
-m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID_LITELLM")))
+m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID")))
 logging.getLogger('fancy_logger').setLevel(logging.WARNING)
 
 data_dir = Path(__file__).parent / "data"
