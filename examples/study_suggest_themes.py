@@ -2,22 +2,26 @@ from pathlib import Path
 from pyqual.core.study import Study
 from mellea import MelleaSession
 from mellea.backends.watsonx import WatsonxAIBackend
+from mellea.backends.litellm import LiteLLMBackend
 from dotenv import load_dotenv
 import os
 import logging
 
-# Configure logging to see progress
+# Configure logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.WARNING,  # Root: suppress all libraries by default
     format='%(levelname)s - %(name)s - %(message)s'
 )
 
-# Suppress verbose logs from external libraries
-logging.getLogger('httpx').setLevel(logging.WARNING)
-logging.getLogger('ibm_watsonx_ai').setLevel(logging.WARNING)
+# Enable INFO logging only for pyqual
+logging.getLogger("pyqual").setLevel(logging.INFO)
 
 load_dotenv()
-m = MelleaSession(backend=WatsonxAIBackend(model_id=os.getenv("MODEL_ID")))
+#m = MelleaSession(backend=WatsonxAIBackend(model_id=os.getenv("MODEL_ID")))
+m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID_LITELLM")))
+
+# Suppress Mellea's FancyLogger (MelleaSession resets it to DEBUG, so we set it here)
+logging.getLogger('fancy_logger').setLevel(logging.WARNING)
 data_dir = Path(__file__).parent / "data"
 
 # Load multiple interviews into a study

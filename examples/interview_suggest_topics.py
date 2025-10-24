@@ -11,20 +11,21 @@ import os
 import json
 import logging
 
-# Configure logging to display INFO messages
+# Configure logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.WARNING,  # Root: suppress all libraries by default
     format='%(levelname)s - %(name)s - %(message)s'
 )
 
-# Suppress verbose logs from external libraries
-logging.getLogger('httpx').setLevel(logging.WARNING)
-logging.getLogger('ibm_watsonx_ai').setLevel(logging.WARNING)
-logging.getLogger("pyqual.core.interview").setLevel(logging.INFO)
+# Enable INFO logging only for pyqual
+logging.getLogger("pyqual").setLevel(logging.INFO)
 
 load_dotenv()
 #m = MelleaSession(backend=WatsonxAIBackend(model_id=os.getenv("MODEL_ID")))
 m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID_LITELLM")))
+
+# Suppress Mellea's FancyLogger (MelleaSession resets it to DEBUG, so we set it here)
+logging.getLogger('fancy_logger').setLevel(logging.WARNING)
 data_dir = Path(__file__).parent / "data"
 file = data_dir / "interview_A.csv"
 
