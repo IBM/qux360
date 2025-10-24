@@ -9,3 +9,7 @@ examples/data/*_exported.xlsx
 .claude/
 .vscode/
 CLAUDE.md
+
+# PyQual cache directories
+.pyqual_cache/
+.study_cache/

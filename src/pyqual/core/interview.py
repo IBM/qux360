@@ -29,21 +29,56 @@ class Interview:
                  file: Optional[Union[str, Path]] = None,
                  metadata: Optional[dict] = None,
                  headers: Optional[dict] = None,
-                 has_headers = True):
+                 has_headers = True,
+                 use_cache: bool = True,
+                 cache_dir: Optional[Path] = None):
         """
         Initialize an Interview.
-        
+
         - Always generates a unique UUID-based id.
-        - If a file is provided, it is parsed into a transcript DataFrame.
+        - If a file is provided, attempts to load from cache (if use_cache=True)
+        - Falls back to parsing if cache is stale or missing
         - Keeps both raw (immutable) and working (mutable) transcripts.
+
+        Parameters
+        ----------
+        file : str or Path, optional
+            Path to interview transcript file (DOCX/XLSX/CSV)
+        metadata : dict, optional
+            Additional metadata to store with interview
+        headers : dict, optional
+            Custom column header mapping for XLSX/CSV files
+        has_headers : bool, default=True
+            Whether the file has a header row (XLSX/CSV only)
+        use_cache : bool, default=True
+            If True, attempts to load from cache before parsing
+        cache_dir : Path, optional
+            Custom cache directory. Defaults to .pyqual_cache/ next to source file
         """
+        # Try smart loading with cache if file provided
+        if file and use_cache:
+            from .cache import try_load_or_parse
+            cached_interview = try_load_or_parse(
+                Path(file),
+                cache_dir=cache_dir,
+                metadata=metadata,
+                headers=headers,
+                has_headers=has_headers
+            )
+            # Copy all attributes from cached interview
+            self.__dict__.update(cached_interview.__dict__)
+            return
+
+        # Standard initialization (no cache or cache disabled)
         self.id = f"interview_{uuid.uuid4().hex[:8]}"
         self.metadata = metadata or {}
+        self.file_path = Path(file) if file else None
 
         self.transcript_raw = self._init_transcript(file, headers=headers, has_headers=has_headers)
         self.transcript = copy.deepcopy(self.transcript_raw)
         self.speaker_mapping = None
         self.topics_top_down = None
+        self.topics_top_down_validation = None  # Stores validation results from topic extraction
 
 
     def __repr__(self):
@@ -814,9 +849,11 @@ class Interview:
                 item_validations=topic_validations
             )
 
-            # Cache the TopicList
+            # Cache the TopicList and validation results
             self.topics_top_down = topics
+            self.topics_top_down_validation = overall_validation
             logger.info(f"Cached TopicList in interview.topics_top_down")
+            logger.info(f"Cached validation (status={overall_validation.status}) in interview.topics_top_down_validation")
 
             # Print summary only when logger is set to DEBUG level
             if logger.isEnabledFor(logging.DEBUG):
@@ -839,3 +876,73 @@ class Interview:
                 ),
                 item_validations=[]
             )
+
+    def save_state(self, cache_path: Optional[Path] = None) -> Path:
+        """
+        Save complete interview state to cache file.
+
+        Saves transcript (raw + transformed), metadata, speaker_mapping, and topics.
+
+        Parameters
+        ----------
+        cache_path : Path, optional
+            Custom cache file path. If None, auto-generates in .pyqual_cache/
+
+        Returns
+        -------
+        Path
+            Path to saved cache file
+        """
+        from .cache import save_interview_state
+        return save_interview_state(self, cache_path)
+
+    @classmethod
+    def load_from_cache(cls, cache_path: Path) -> 'Interview':
+        """
+        Load interview from cache file.
+
+        Parameters
+        ----------
+        cache_path : Path
+            Path to the cache JSON file
+
+        Returns
+        -------
+        Interview
+            Reconstructed interview with full state
+        """
+        from .cache import load_interview_state
+        return load_interview_state(cache_path)
+
+    def get_topics_validated(self) -> Optional[ValidatedList]:
+        """
+        Reconstruct ValidatedList from cached topics and validation.
+
+        This is useful after loading from cache to get the full validated
+        result that can be used with print_summary() and other ValidatedList methods.
+
+        Returns
+        -------
+        ValidatedList or None
+            ValidatedList containing topics and validation, or None if no cached topics
+        """
+        if self.topics_top_down is None:
+            return None
+
+        # Default validation if none cached
+        validation = self.topics_top_down_validation or IffyIndex.from_check(
+            method="cache",
+            status="ok",
+            explanation="Loaded from cache (no validation stored)"
+        )
+
+        # Extract per-topic validations from nested checks
+        # The overall validation contains per-topic validations in its checks list
+        item_validations = validation.checks if validation.checks else []
+
+        # Reconstruct ValidatedList from cached components
+        return ValidatedList(
+            result=self.topics_top_down.topics,
+            validation=validation,
+            item_validations=item_validations
+        )

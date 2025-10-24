@@ -35,13 +35,17 @@ interview_files = [
     data_dir / "interview_C.csv"
 ]
 
+# Disable caching to show complete pipeline from scratch
 study = Study(
     interview_files,
-    study_context="A qualitative study about remote work experiences and challenges"
+    study_context="A qualitative study about remote work experiences and challenges",
+    use_cache=False  # Disable cache to run full pipeline
 )
 print(f"\nLoaded study: {study}")
 print(f"Number of interviews: {len(study)}")
 print(f"Study context: {study.study_context}")
+print("\n💡 Note: This example runs the full pipeline without caching.")
+print("   For fast iteration with caching, see: study_suggest_themes_from_cache.py")
 
 # Identify interviewees for each interview
 print("\n" + "=" * 60)
@@ -113,3 +117,9 @@ else:
 print("\n" + "=" * 60)
 print("ANALYSIS COMPLETE")
 print("=" * 60)
+print("\n📝 Summary:")
+print(f"  • {len(study)} interviews processed")
+print(f"  • Topics extracted from all interviews")
+print(f"  • {len(themes_result.result.themes) if themes_result and themes_result.result else 0} cross-cutting themes identified")
+print("\n💡 For faster iteration:")
+print("   Run study_suggest_themes_from_cache.py to cache topics and iterate on theme analysis")
