@@ -4,11 +4,24 @@ from mellea import MelleaSession
 from mellea.backends.litellm import LiteLLMBackend
 from dotenv import load_dotenv
 import os
-import json 
+import json
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.WARNING,  # Root: suppress all libraries by default
+    format='%(levelname)s - %(name)s - %(message)s'
+)
+
+# Enable INFO logging only for pyqual
+logging.getLogger("pyqual").setLevel(logging.INFO)
 
 load_dotenv()
 
 m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID_LITELLM")))
+
+# Suppress Mellea's FancyLogger (MelleaSession resets it to DEBUG, so we set it here)
+logging.getLogger('fancy_logger').setLevel(logging.WARNING)
 
 
 data_dir = Path(__file__).parent / "data"

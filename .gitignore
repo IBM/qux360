@@ -8,3 +8,4 @@ Makefile
 examples/data/*_exported.xlsx
 .claude/
 .vscode/
+CLAUDE.md

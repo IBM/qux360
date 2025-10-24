@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from typing import TypeVar, Generic, List
+import textwrap
 
 from .iffy import IffyIndex
 
@@ -252,6 +253,10 @@ class ValidatedList(Validated[List[T]]):
         for i, (item, validation) in enumerate(self.items_with_validations(), 1):
             status_emoji = {"ok": "✅", "check": "⚠️", "iffy": "❌"}[validation.status]
 
+            # Visual separator between items
+            if i > 1:
+                print(f"\n{'-' * 60}")
+
             # Try to get item name/title (works with objects that have .topic, .name, etc.)
             item_name = None
             for attr in ['topic', 'name', 'title', 'label']:
@@ -260,26 +265,47 @@ class ValidatedList(Validated[List[T]]):
                     break
 
             if item_name:
-                print(f"\n{status_emoji} {item_label} {i}: {item_name} [{validation.status.upper()}]")
+                print(f"\n{i}. {item_name}")
             else:
-                print(f"\n{status_emoji} {item_label} {i} [{validation.status.upper()}]")
+                print(f"\n{i}. {item_label} {i}")
 
-            # Show validation checks
+            # Show item content (explanation and quotes if available)
+            if hasattr(item, 'explanation'):
+                print(f"\n   {item.explanation}\n")
+
+            if hasattr(item, 'quotes'):
+                print(f"   Quotes ({len(item.quotes)}):")
+                for quote in item.quotes[:3]:  # Show first 3 quotes
+                    print(f"      [{quote.index}] {quote.timestamp} {quote.speaker}:")
+                    print(f"      {quote.quote}\n")
+                if len(item.quotes) > 3:
+                    print(f"      ... and {len(item.quotes) - 3} more\n")
+
+            # Show validation status and checks
+            print(f"   {status_emoji} Validation: {validation.status.upper()}")
+
+            # Show validation checks (only non-informational)
             for check in validation.checks:
-                if check.informational:
-                    # Display informational assessment with special formatting
-                    print(f"   ℹ️  {check.method} (informational):")
-                    if check.metadata:
-                        strengths = check.metadata.get("strengths", "")
-                        weaknesses = check.metadata.get("weaknesses", "")
-                        if strengths:
-                            print(f"      • Strengths: {strengths}")
-                        if weaknesses:
-                            print(f"      • Weaknesses: {weaknesses}")
-                else:
-                    # Display validation check normally
+                if not check.informational:
                     check_emoji = {"ok": "✅", "check": "⚠️", "iffy": "❌"}[check.status]
-                    print(f"   └─ {check_emoji} {check.method}: {check.explanation}")
+                    print(f"      └─ {check_emoji} {check.method}:")
+                    # Wrap long explanations with proper indentation
+                    wrapped = textwrap.fill(check.explanation, width=70, initial_indent="         ", subsequent_indent="         ")
+                    print(wrapped)
+
+            # Show informational assessments
+            for check in validation.checks:
+                if check.informational and check.metadata:
+                    strengths = check.metadata.get("strengths", "")
+                    weaknesses = check.metadata.get("weaknesses", "")
+                    if strengths or weaknesses:
+                        print(f"      ℹ️  LLM Assessment:")
+                        if strengths:
+                            wrapped_strengths = textwrap.fill(strengths, width=70, initial_indent="         + ", subsequent_indent="           ")
+                            print(wrapped_strengths)
+                        if weaknesses:
+                            wrapped_weaknesses = textwrap.fill(weaknesses, width=70, initial_indent="         - ", subsequent_indent="           ")
+                            print(wrapped_weaknesses)
 
         print(f"\n{'='*60}")
         print(f"Overall: {self.validation.status.upper()} - {self.validation.explanation}")
