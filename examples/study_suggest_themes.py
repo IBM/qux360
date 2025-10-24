@@ -17,8 +17,8 @@ logging.basicConfig(
 logging.getLogger("pyqual").setLevel(logging.INFO)
 
 load_dotenv()
-#m = MelleaSession(backend=WatsonxAIBackend(model_id=os.getenv("MODEL_ID")))
-m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID_LITELLM")))
+#m = MelleaSession(backend=WatsonxAIBackend(model_id=os.getenv("MODEL_ID_WATSONX")))
+m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID")))
 
 # Suppress Mellea's FancyLogger (MelleaSession resets it to DEBUG, so we set it here)
 logging.getLogger('fancy_logger').setLevel(logging.WARNING)
