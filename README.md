@@ -164,7 +164,7 @@ print("Predicted interviewee:", interviewee)
 ## ✏️ Contributing
 
 You can contribute to:
-* Quax360. Look at the [Contribution Guidelines](CONTRIBUTING.md) for more details.
+* Qux360. Look at the [Contribution Guidelines](CONTRIBUTING.md) for more details.
 * [Mellea](https://mellea.ai/). Look at the [Contribution Guidelines](https://github.com/generative-computing/mellea/blob/main/docs/tutorial.md#appendix-contributing-to-mellea) for more details.
 
 ## 📚 Documentation

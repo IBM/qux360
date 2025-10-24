@@ -35,16 +35,12 @@ i = Interview(file)
 
 # [OPTION B] create an instance with headers config
 '''
-try:
-    # loads config file to get the headers names provided by the user
-    with open(config_file, "r", encoding="utf-8") as f:
-        config = json.load(f)
-    # create an instance with headers config
-    i = Interview(file, headers=config['headers'])
-except ValueError as e:
-   raise e
+# loads config file to get the headers names provided by the user
+with open(config_file, "r", encoding="utf-8") as f:
+    config = json.load(f)
+# create an instance with headers config
+i = Interview(file, headers=config['headers'])
 '''
-
 
 # see what we loaded
 i.show(10)

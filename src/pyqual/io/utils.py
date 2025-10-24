@@ -1,5 +1,12 @@
 import pandas as pd
 
+import logging
+logger = logging.getLogger(__name__)
+
+class SchemaValidationError(Exception):
+    """Raised when the input DataFrame does not conform to the expected schema."""
+    pass
+
 def ensure_schema(df: pd.DataFrame, source: str) -> pd.DataFrame:
     """
     Normalize DataFrame to PyQual schema.
@@ -8,18 +15,21 @@ def ensure_schema(df: pd.DataFrame, source: str) -> pd.DataFrame:
     """
 
     # Normalize column names to lowercase and strip whitespace
+    original_columns = df.columns.tolist()
     df.columns = [col.strip().lower() for col in df.columns]
+    if original_columns != df.columns.tolist():
+        logger.debug(f"⚠️ Column names were normalized. Original: {original_columns} → Normalized: {df.columns.tolist()}")
 
     if source == "vtt":
         if "timestamp" not in df.columns or "statement" not in df.columns:
-            raise ValueError("VTT transcript must have timestamp and statement.")
+            raise SchemaValidationError("VTT transcript must have timestamp and statement.")
         if "speaker" not in df.columns:
             df["speaker"] = "Unknown"
     else:
         required = ["timestamp", "speaker", "statement"]
         for col in required:
             if col not in df.columns:
-                raise ValueError(f"{source.upper()} transcript missing required column: {col}")
+                raise SchemaValidationError(f"{source.upper()} transcript missing required column: {col}")
 
     # Fill optional columns if missing
     if "speaker_id" not in df.columns:
@@ -30,24 +40,34 @@ def ensure_schema(df: pd.DataFrame, source: str) -> pd.DataFrame:
         df["themes"] = [[] for _ in range(len(df))]
 
     # Reorder into canonical schema
-    return df[["timestamp", "speaker_id", "speaker", "statement", "codes", "themes"]]
+    expected_columns = ["timestamp", "speaker_id", "speaker", "statement", "codes", "themes"]
+    missing = [col for col in expected_columns if col not in df.columns]
+    if missing:
+        raise SchemaValidationError(f"Missing columns after normalization: {missing}")
+
+    return df[expected_columns]
 
 
-def process_headers(df, headers: dict) -> dict:
-    if (not headers):
-        print(f"⚠️ Custom headers not provided. Using default headers ['timestamp', 'speaker', 'statement']")
-        headers = {  
+def process_headers(df: pd.DataFrame, headers: dict) -> dict:
+    if headers is None:
+        logger.info("Custom headers not provided. Using default headers ['timestamp', 'speaker', 'statement']")
+        headers = {
             "timestamp": "timestamp",
             "speaker": "speaker",
             "statement": "statement"
         }
-    try:
-        df = df.rename(columns={
-            headers['timestamp']: "timestamp",
-            headers['speaker']: "speaker",
-            headers['statement']: "statement"
-        })
-    except KeyError as e:
-        raise ValueError(f"Wrong value for headers configuration. Expected values for 'timestamp', 'speaker', 'statement'. Found {e}")
-
+    else:
+        required_keys = {"timestamp", "speaker", "statement"}
+        missing_keys = required_keys - headers.keys()
+        if missing_keys:
+            raise ValueError(f"Missing required header keys: {missing_keys}")
+        
+        try:
+            df = df.rename(columns={
+                headers["timestamp"]: "timestamp",
+                headers["speaker"]: "speaker",
+                headers["statement"]: "statement"
+            })
+        except KeyError as e:
+            raise ValueError(f"Header mapping failed. Column not found: {e}")
     return df
