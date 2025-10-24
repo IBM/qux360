@@ -10,18 +10,19 @@ import logging
 
 # Configure logging
 logging.basicConfig(
-    level=logging.WARNING,  # Root: suppress all libraries by default
+    level=logging.WARNING,
     format='%(levelname)s - %(name)s - %(message)s'
 )
-
-# Enable INFO logging only for pyqual
 logging.getLogger("pyqual").setLevel(logging.INFO)
+logging.getLogger('httpx').setLevel(logging.WARNING)
+logging.getLogger('ibm_watsonx_ai').setLevel(logging.WARNING)
 
 load_dotenv()
 m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID_LITELLM")))
 
 # Suppress Mellea's FancyLogger (MelleaSession resets it to DEBUG, so we set it here)
 logging.getLogger('fancy_logger').setLevel(logging.WARNING)
+
 data_dir = Path(__file__).parent / "data"
 file = data_dir / "interview_A.csv"
 participant_id = "P1"
