@@ -17,7 +17,7 @@ class Study:
     A collection of qualitative documents (for now only interviews are supported).
     """
 
-    def __init__(self, files_or_docs=None, metadata=None, doc_cls=Interview, headers: Optional[list[dict]] = None, has_headers: Optional[list[bool]] = None, study_context=None):
+    def __init__(self, files_or_docs=None, metadata=None, doc_cls=Interview, headers: Optional[list[dict]] = None, has_headers: Optional[list[bool]] = None, study_context=None, use_cache: bool = True, cache_dir: Optional[Path] = None):
         """
         Parameters
         ----------
@@ -34,6 +34,10 @@ class Study:
         study_context : str, optional
             Description of the overall study context (e.g., "Remote work experiences").
             Used as default for theme extraction if not overridden.
+        use_cache : bool, default=True
+            If True, attempts to load interviews from cache before parsing
+        cache_dir : Path, optional
+            Custom cache directory for interview states
         """
         if doc_cls is not Interview:
             raise ValueError("Study currently only supports Interview documents.")
@@ -44,6 +48,8 @@ class Study:
         self.documents = []
         self.study_context = study_context
         self.themes_top_down = None
+        self.use_cache = use_cache
+        self.cache_dir = cache_dir
 
         if files_or_docs:
             for i, item in enumerate(files_or_docs):
@@ -56,7 +62,16 @@ class Study:
 
     def _add_checked(self, file_or_doc, headers: Optional[dict] = None, has_headers: Optional[bool]= True):
         if isinstance(file_or_doc, (str, Path)):
-            self.documents.append(self.doc_cls(file=file_or_doc, metadata=self.metadata, headers=headers, has_headers=has_headers))
+            self.documents.append(
+                self.doc_cls(
+                    file=file_or_doc,
+                    metadata=self.metadata,
+                    headers=headers,
+                    has_headers=has_headers,
+                    use_cache=self.use_cache,
+                    cache_dir=self.cache_dir
+                )
+            )
         elif isinstance(file_or_doc, self.doc_cls):
             self.documents.append(file_or_doc)
         else:
@@ -443,3 +458,38 @@ class Study:
                 explanation=f"Failed to generate themes: {str(e)}"
             )
             return Validated(result=None, validation=validation)
+
+    def save_state(self, cache_dir: Path) -> Path:
+        """
+        Save complete study state (all interviews + themes).
+
+        Parameters
+        ----------
+        cache_dir : Path
+            Directory to save study state and all interview caches
+
+        Returns
+        -------
+        Path
+            Path to the study state file
+        """
+        from .cache import save_study_state
+        return save_study_state(self, cache_dir)
+
+    @classmethod
+    def load_from_cache(cls, cache_dir: Path) -> 'Study':
+        """
+        Load study from cache directory.
+
+        Parameters
+        ----------
+        cache_dir : Path
+            Directory containing study_state.json and interview caches
+
+        Returns
+        -------
+        Study
+            Reconstructed study with all interviews and state
+        """
+        from .cache import load_study_state
+        return load_study_state(cache_dir)

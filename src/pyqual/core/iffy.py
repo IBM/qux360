@@ -214,10 +214,42 @@ class IffyIndex:
             d["method"] = self.method
         if self.metadata:
             d["metadata"] = self.metadata
+        if self.informational:
+            d["informational"] = self.informational
         if self.checks:
             d["checks"] = [c.to_dict() for c in self.checks]
 
         return d
+
+    @classmethod
+    def from_dict(cls, d: dict) -> 'IffyIndex':
+        """
+        Reconstruct IffyIndex from dictionary representation.
+
+        Parameters
+        ----------
+        d : dict
+            Dictionary with validation data (from to_dict())
+
+        Returns
+        -------
+        IffyIndex
+            Reconstructed validation object
+        """
+        # Recursively reconstruct nested checks
+        checks = []
+        if "checks" in d:
+            checks = [cls.from_dict(check_dict) for check_dict in d["checks"]]
+
+        return cls(
+            status=d["status"],
+            explanation=d["explanation"],
+            errors=d.get("errors", []),
+            method=d.get("method"),
+            metadata=d.get("metadata"),
+            informational=d.get("informational", False),
+            checks=checks
+        )
 
     def __str__(self) -> str:
         if self.method:
