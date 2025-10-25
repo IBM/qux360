@@ -52,6 +52,13 @@ class Study:
         self.cache_dir = cache_dir
 
         if files_or_docs:
+            num_items = len(files_or_docs)
+            if headers and len(headers) != num_items:
+                raise ValueError(f"'headers' length ({len(headers)}) does not match number of documents ({num_items}).")
+
+            if has_headers and len(has_headers) != num_items:
+                raise ValueError(f"'has_headers' length ({len(has_headers)}) does not match number of documents ({num_items}).")
+            
             for i, item in enumerate(files_or_docs):
                 if headers:
                     self._add_checked(file_or_doc=item, headers=headers[i], has_headers=has_headers[i])

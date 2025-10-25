@@ -3,6 +3,9 @@ import pandas as pd
 from pathlib import Path
 from docx import Document
 
+import logging
+logger = logging.getLogger(__name__)
+
 def parse_docx(path: str | Path) -> pd.DataFrame:
     """
     Parse a DOCX transcript into the PyQual schema.
@@ -17,11 +20,8 @@ def parse_docx(path: str | Path) -> pd.DataFrame:
     pd.DataFrame
         Transcript with columns: timestamp, speaker_id, speaker, statement, codes, themes.
     """
-    try:
-        doc = Document(path)
-    except Exception as e:
-        print(f"Error opening DOCX file '{path}': {e}")
-        return pd.DataFrame(columns=["timestamp", "speaker_id", "speaker", "statement", "codes", "themes"])
+    
+    doc = Document(path)
     
     segments = []
     current_speaker = None

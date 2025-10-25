@@ -237,7 +237,7 @@ class Interview:
         ...     interviewee = result.result
         """
         # Nothing to work on
-        if self.transcript.empty or "speaker" not in self.transcript:
+        if self.transcript.empty or 'speaker' not in self.transcript:
             return Validated(
                 result=None,
                 validation=IffyIndex.from_check(
@@ -248,6 +248,9 @@ class Interview:
             )
 
         # Check 1: Heuristic (word count)
+        if 'speaker' not in self.transcript.columns or 'statement' not in self.transcript.columns:
+            raise ValueError("Transcript is missing 'speaker' or 'statement' column")
+        
         counts = self.transcript.groupby("speaker")["statement"].apply(
             lambda x: x.str.split().str.len().sum()
         )
@@ -273,6 +276,9 @@ class Interview:
         checks = [heuristic_check]
 
         # Check 2: Optional LLM prediction
+        if 'timestamp' not in self.transcript.columns or 'speaker' not in self.transcript.columns or 'statement' not in self.transcript.columns:
+            raise ValueError("Transcript is missing 'timestamp' or 'speaker' or 'statement' column. If your transcript names them differently, you can set up the right headers configuration.")
+
         if m:
             snippet = "\n".join(
                 f"[{row['timestamp']}] {row['speaker']}: {shorten(str(row['statement']), width=120)}"
@@ -355,6 +361,9 @@ class Interview:
         nlp = self._load_spacy_model(model)
 
         results = []
+        if 'statement' not in self.transcript.columns:
+            raise ValueError("Transcript is missing 'statement' column. If your transcript names them differently, you can set up the right headers configuration.")
+
         if verbose:
             for idx, text in self.transcript["statement"].dropna().items():
                 doc = nlp(str(text))
@@ -389,7 +398,10 @@ class Interview:
         replacements = {}
         counters = {"PERSON": 0, "ORG": 0, "GPE": 0}
 
-        for e in entities:
+        for i, e in enumerate(entities):
+            if 'entity' not in e or 'label' not in e:
+                raise KeyError(f"Missing 'entity' or 'label' in entity at index {i}: {e}")
+
             entity, label = e["entity"], e["label"]
 
             # Assign a new placeholder only if this entity not seen before
@@ -415,6 +427,9 @@ class Interview:
 
         mapping = {sp: f"Speaker{i+1}" for i, sp in enumerate(speakers)}
 
+        if 'speaker' not in self.transcript.columns:
+            raise ValueError("Transcript is missing 'speaker' column. If your transcript names it differently, you can set up the right header configuration.")
+
         self.transcript["speaker"] = self.transcript["speaker"].map(mapping)
         self.speaker_mapping = mapping
 
@@ -438,6 +453,9 @@ class Interview:
             return anonymized
 
         # Replace inside statements
+        if 'statement' not in self.transcript.columns:
+            raise ValueError("Transcript is missing 'statement' column. If your transcript names it differently, you can set up the right header configuration.")
+
         self.transcript["statement"] = self.transcript["statement"].map(replace_text)
 
 
@@ -452,6 +470,9 @@ class Interview:
         new : str
             The new label to assign.
         """
+        if 'speaker' not in self.transcript.columns:
+            raise ValueError("Transcript is missing 'speaker' column. If your transcript names it differently, you can set up the right header configuration.")
+
         if old not in self.transcript["speaker"].unique():
             raise ValueError(f"Speaker '{old}' not found in transcript.")
 
@@ -485,8 +506,8 @@ class Interview:
         - If a speaker_mapping exists and `pid` matches an *original* name,
         it is translated to the current anonymized/renamed label.
         """
-        if "speaker" not in self.transcript.columns:
-            raise ValueError("Transcript has no 'speaker' column.")
+        if 'speaker' not in self.transcript.columns:
+            raise ValueError("Transcript is missing 'speaker' column. If your transcript names it differently, you can set up the right header configuration.")
 
         # Case 1: pid matches a current label in transcript
         if pid in self.transcript["speaker"].unique():
@@ -598,6 +619,9 @@ class Interview:
                 item_validations=[]
             )
 
+
+        if 'timestamp' not in self.transcript.columns or 'speaker' not in self.transcript.columns or 'statement' not in self.transcript.columns:
+            raise ValueError("Transcript is missing 'timestamp' or 'speaker' or 'statement' column. If your transcript names them differently, you can set up the right headers configuration.")
 
         # Build prompt
         text = "\n".join(
