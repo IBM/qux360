@@ -38,6 +38,7 @@ def _compute_file_hash(file_path: Path) -> str:
 
 def _get_cache_path(source_file: Path, cache_dir: Path = None) -> Path:
     """Generate cache file path for a given source file."""
+    logger.debug(f"Get cache path - Source file: {source_file}")
     if cache_dir is None:
         cache_dir = source_file.parent / ".pyqual_cache"
 
@@ -48,6 +49,7 @@ def _get_cache_path(source_file: Path, cache_dir: Path = None) -> Path:
 
 def _is_cache_valid(cache_path: Path, source_file: Path) -> bool:
     """Check if cache exists and is up-to-date with source file."""
+    logger.debug(f"Is cache valid - Cache path: {cache_path} | Source file: {source_file}")
     if not cache_path.exists():
         return False
 
@@ -81,6 +83,8 @@ def save_interview_state(interview: 'Interview', cache_path: Optional[Path] = No
         Path to the saved cache file
     """
     from .interview import Interview  # Avoid circular import
+
+    logger.debug(f"Save interview state\n{interview.to_json(indent=2, sort_keys=True)}")
 
     if cache_path is None:
         if not hasattr(interview, 'file_path') or interview.file_path is None:
@@ -136,6 +140,8 @@ def load_interview_state(cache_path: Path, validate_source: bool = True) -> 'Int
         Reconstructed interview instance with full state
     """
     from .interview import Interview  # Avoid circular import
+
+    logger.debug(f"Load interview state - Cache path: {cache_path}")
 
     if not cache_path.exists():
         raise FileNotFoundError(f"Cache file not found: {cache_path}")
@@ -200,6 +206,8 @@ def try_load_or_parse(file: Path, cache_dir: Optional[Path] = None, **parse_kwar
     """
     from .interview import Interview  # Avoid circular import
 
+    logger.debug(f"Try load or parse\n{file}")
+
     file = Path(file)
     cache_path = _get_cache_path(file, cache_dir)
 
@@ -235,6 +243,8 @@ def save_study_state(study: 'Study', cache_dir: Path) -> Path:
         Path to the study state file
     """
     from .study import Study  # Avoid circular import
+
+    logger.debug(f"Save study state - Study: {study}")
 
     cache_dir = Path(cache_dir)
     cache_dir.mkdir(exist_ok=True)
@@ -278,6 +288,8 @@ def load_study_state(cache_dir: Path) -> 'Study':
         Reconstructed study instance with all interviews
     """
     from .study import Study  # Avoid circular import
+
+    logger.debug(f"Load study state - Cache path: {cache_dir}")
 
     cache_dir = Path(cache_dir)
     study_cache_path = cache_dir / "study_state.json"

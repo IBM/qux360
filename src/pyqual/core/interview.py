@@ -55,6 +55,7 @@ class Interview:
         cache_dir : Path, optional
             Custom cache directory. Defaults to .pyqual_cache/ next to source file
         """
+        logger.debug(f"\nInit Interview - File Path: {file} | Usign cache {use_cache}")
         # Try smart loading with cache if file provided
         if file and use_cache:
             from .cache import try_load_or_parse
@@ -71,6 +72,7 @@ class Interview:
 
         # Standard initialization (no cache or cache disabled)
         self.id = f"interview_{uuid.uuid4().hex[:8]}"
+        logger.debug(f"Interview ID: {self.id}")
         self.metadata = metadata or {}
         self.file_path = Path(file) if file else None
 
@@ -85,11 +87,13 @@ class Interview:
         return f"<Interview {self.id}, {len(self.transcript)} turns, metadata={self.metadata}>"
     
     def _empty_transcript(self):
+        logger.debug(f"\nEmpty transcript - Interview ID: {self.id}\n")
         return pd.DataFrame(columns=[
             "timestamp", "speaker_id", "speaker", "statement", "codes", "themes"
         ])
 
     def _init_transcript(self, file, headers: Optional[dict] = None, has_headers = True):
+        logger.debug(f"\Init transcript - Interview ID: {self.id} | File: {file}")
         if not file:
             return self._empty_transcript()
         
@@ -109,31 +113,35 @@ class Interview:
 
     def _load_spacy_model(self, model: str = "en_core_web_trf"):
         """Try loading a spaCy model, with fallback to lg → sm."""
+        logger.debug(f"Loading spacy model: {model} - Interview ID: {self.id}")
         candidates = [model, "en_core_web_lg", "en_core_web_sm"]
         for candidate in candidates:
             try:
                 nlp = spacy.load(candidate)
-                print(f"Using spaCy model: {candidate}")
+                logger.info(f"Using spaCy model: {candidate} - Interview ID: {self.id}")
                 return nlp
             except OSError:
-                print(f"spaCy model '{candidate}' not found.")
+                logger.error(f"spaCy model '{candidate}' not found.")
         raise RuntimeError("No suitable spaCy model installed.")
     
 
     
     def reset_transcript(self):
         """Reset the working transcript back to the raw version."""
+        logger.debug(f"Reset transcript - Interview ID: {self.id}")
         self.transcript = copy.deepcopy(self.transcript_raw)
 
     def load_file(self, file: str | Path, headers: Optional[dict] = None, has_headers = True):
         """
         Load a transcript file into the interview (overwrites both raw and working).
         """
+        logger.debug(f"Load transcript file - Interview ID: {self.id} | File: {file}")
         self.transcript_raw = self._init_transcript(file, headers=headers, has_headers=has_headers)
         self.transcript = copy.deepcopy(self.transcript_raw)
 
     def add_code(self, row: int, code: str):
         """Attach a code to a specific row in the working transcript."""
+        logger.debug(f"Add code - Row: {row} | Code: {code} | Interview ID: {self.id}")
         current = self.transcript.at[row, "codes"]
         if not isinstance(current, list):
             self.transcript.at[row, "codes"] = []
@@ -150,6 +158,7 @@ class Interview:
         include_enriched : bool, default=True
             If False, excludes speaker_id, codes, themes.
         """
+        logger.debug(f"Export to XLSX - Interview ID: {self.id} | File: {path}")
         df = copy.deepcopy(self.transcript)
 
         # Drop enrichment columns if not requested
@@ -180,8 +189,9 @@ class Interview:
             # Freeze header row
             ws.freeze_panes(1, 0)
 
-    def show(self, n: int = 5, speaker: Optional[str] = None, width: int = 60):
+    def show(self, rows: int = 5, speaker: Optional[str] = None, width: int = 60):
         """Pretty-print transcript preview in a clean 3-column layout."""
+        logger.debug(f"View transcript (pretty-print) - Interview ID: {self.id} | Speaker: {speaker} | Rows: {n}")
         df = self.transcript
         if df.empty:
             print("Transcript is empty.")
@@ -190,7 +200,7 @@ class Interview:
         if speaker:
             df = df[df["speaker"] == speaker]
 
-        for _, row in df.head(n).iterrows():
+        for _, row in df.head(rows).iterrows():
             ts = str(row["timestamp"])
             sp = str(row["speaker"])
             st = str(row["statement"])[:width]
@@ -198,6 +208,7 @@ class Interview:
 
     def get_speakers(self) -> list[str]:
         """Return a list of unique speakers in the working transcript."""
+        logger.debug(f"Get unique speakers - Interview ID: {self.id}")
         if "speaker" not in self.transcript.columns:
             return []
         speakers = (
@@ -236,6 +247,7 @@ class Interview:
         >>> if result.passed_validation():
         ...     interviewee = result.result
         """
+        logger.debug(f"Identify Interviewee - Interview ID: {self.id}")
         # Nothing to work on
         if self.transcript.empty or 'speaker' not in self.transcript:
             return Validated(
@@ -248,6 +260,7 @@ class Interview:
             )
 
         # Check 1: Heuristic (word count)
+        logger.info(f"Heuristic validation - Interview ID: {self.id}")
         if 'speaker' not in self.transcript.columns or 'statement' not in self.transcript.columns:
             raise ValueError("Transcript is missing 'speaker' or 'statement' column")
         
@@ -259,6 +272,7 @@ class Interview:
         ratio = counts[predicted_heuristic] / total_words if total_words > 0 else 0.0
 
         # Determine heuristic status
+        logger.debug(f"Determine heuristic status - Interview ID: {self.id}")
         if ratio >= 0.70:
             heuristic_status = "ok"
         elif ratio >= 0.60:
@@ -276,6 +290,7 @@ class Interview:
         checks = [heuristic_check]
 
         # Check 2: Optional LLM prediction
+        logger.info(f"Optional LLM prediction - Interview ID: {self.id}")
         if 'timestamp' not in self.transcript.columns or 'speaker' not in self.transcript.columns or 'statement' not in self.transcript.columns:
             raise ValueError("Transcript is missing 'timestamp' or 'speaker' or 'statement' column. If your transcript names them differently, you can set up the right headers configuration.")
 
@@ -358,6 +373,7 @@ class Interview:
             Compact mode: {"entity": "IBM", "label": "ORG", "rows": [3, 7]}
             Verbose mode: {"entity": "IBM", "label": "ORG", "row": 3, "statement": "..."}
         """
+        logger.debug(f"Detect entities -Interview ID: {self.id} |  Model: {model}")
         nlp = self._load_spacy_model(model)
 
         results = []
@@ -394,7 +410,7 @@ class Interview:
     
 
     def build_replacement_map(self, entities: list[dict]) -> dict:
-        
+        logger.debug(f"Building replacement map - Interview ID: {self.id}")
         replacements = {}
         counters = {"PERSON": 0, "ORG": 0, "GPE": 0}
 
@@ -402,6 +418,7 @@ class Interview:
             if 'entity' not in e or 'label' not in e:
                 raise KeyError(f"Missing 'entity' or 'label' in entity at index {i}: {e}")
 
+            logger.debug(f"\tEntity: {e['entity']} | Label: {e['label']}")
             entity, label = e["entity"], e["label"]
 
             # Assign a new placeholder only if this entity not seen before
@@ -421,6 +438,7 @@ class Interview:
         dict
             Mapping of original names -> generic anonymized labels.
         """
+        logger.info(f"Anonymize speakers - Interview ID: {self.id}")
         speakers = self.get_speakers()
         if not speakers:
             return {}
@@ -441,7 +459,7 @@ class Interview:
         return mapping
 
     def anonymize_statements(self, replacements: dict):
-
+        logger.info(f"Anonymize statements - Interview ID: {self.id}")
         if not replacements:
             print("No replacements provided.")
             return
@@ -470,6 +488,7 @@ class Interview:
         new : str
             The new label to assign.
         """
+        logger.debug(f"Rename speaker - Old: {old} -> New: {new} | Interview ID: {self.id}")
         if 'speaker' not in self.transcript.columns:
             raise ValueError("Transcript is missing 'speaker' column. If your transcript names it differently, you can set up the right header configuration.")
 
@@ -506,6 +525,7 @@ class Interview:
         - If a speaker_mapping exists and `pid` matches an *original* name,
         it is translated to the current anonymized/renamed label.
         """
+        logger.debug(f"Set participant ID - Interview ID: {self.id} | Participant ID: {pid}")
         if 'speaker' not in self.transcript.columns:
             raise ValueError("Transcript is missing 'speaker' column. If your transcript names it differently, you can set up the right header configuration.")
 
@@ -544,6 +564,7 @@ class Interview:
             Returns None if the quote is valid (exact or near match),
             otherwise returns a descriptive error message.
         """
+        logger.info(f"Validate quote - Interview ID: {self.id} | Quote text: {quote.text}")
         df = self.transcript
 
         def similar(a: str, b: str, threshold: float = 0.8) -> bool:
@@ -950,6 +971,7 @@ class Interview:
         ValidatedList or None
             ValidatedList containing topics and validation, or None if no cached topics
         """
+        logger.debug(f"Get topics validated - Interview ID: {self.id}")
         if self.topics_top_down is None:
             return None
 

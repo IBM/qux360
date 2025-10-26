@@ -5,10 +5,7 @@ from mellea import MelleaSession
 from mellea.backends.litellm import LiteLLMBackend
 from mellea import MelleaSession
 from dotenv import load_dotenv
-from mellea.backends.types import ModelOption
-from ibm_watsonx_ai.foundation_models import ModelInference
 import os
-import json
 import logging
 
 # Configure logging
@@ -28,8 +25,6 @@ m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID")))
 logging.getLogger('fancy_logger').setLevel(logging.WARNING)
 data_dir = Path(__file__).parent / "data"
 file = data_dir / "interview_A.csv"
-
-
 
 
 # STEP 1: Load interview

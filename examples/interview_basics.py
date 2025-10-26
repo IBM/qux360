@@ -4,7 +4,6 @@ from mellea import MelleaSession
 from mellea.backends.litellm import LiteLLMBackend
 from dotenv import load_dotenv
 import os
-import json
 import logging
 
 # Configure logging
