@@ -10,6 +10,9 @@ def parse_xlsx(path: str, headers: Optional[dict] = None, has_headers = True) ->
     Parse an XLSX transcript into the PyQual schema.
     Must contain at least timestamp, speaker, statement.
     """
+
+    logger.debug(f"Parse XLSX - Path: {path}")
+    
     if has_headers:
         df = pd.read_excel(path) # reads the xlsx with header
         df = process_headers(df, headers) # process the headers according to the provided ones

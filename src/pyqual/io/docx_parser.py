@@ -21,6 +21,8 @@ def parse_docx(path: str | Path) -> pd.DataFrame:
         Transcript with columns: timestamp, speaker_id, speaker, statement, codes, themes.
     """
     
+    logger.debug(f"Parse DOCX - Path: {path}")
+    
     doc = Document(path)
     
     segments = []

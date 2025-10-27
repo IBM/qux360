@@ -14,6 +14,8 @@ def ensure_schema(df: pd.DataFrame, source: str) -> pd.DataFrame:
     - VTT: allow missing speaker (set to 'Unknown').
     """
 
+    logger.debug(f"Ensure schema - Source: {source}")
+
     # Normalize column names to lowercase and strip whitespace
     original_columns = df.columns.tolist()
     df.columns = [col.strip().lower() for col in df.columns]
@@ -49,6 +51,8 @@ def ensure_schema(df: pd.DataFrame, source: str) -> pd.DataFrame:
 
 
 def process_headers(df: pd.DataFrame, headers: dict) -> dict:
+    logger.debug(f"Process headers - Headers: {headers}")
+    
     if headers is None:
         logger.info("Custom headers not provided. Using default headers ['timestamp', 'speaker', 'statement']")
         headers = {

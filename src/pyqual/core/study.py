@@ -39,6 +39,7 @@ class Study:
         cache_dir : Path, optional
             Custom cache directory for interview states
         """
+        logger.debug(f"Init Study")
         if doc_cls is not Interview:
             raise ValueError("Study currently only supports Interview documents.")
 
@@ -50,6 +51,7 @@ class Study:
         self.themes_top_down = None
         self.use_cache = use_cache
         self.cache_dir = cache_dir
+        logger.debug(f"Study ID: {self.id}")
 
         if files_or_docs:
             num_items = len(files_or_docs)
@@ -60,6 +62,7 @@ class Study:
                 raise ValueError(f"'has_headers' length ({len(has_headers)}) does not match number of documents ({num_items}).")
             
             for i, item in enumerate(files_or_docs):
+                logger.debug(f"Processing item {item}")
                 if headers:
                     self._add_checked(file_or_doc=item, headers=headers[i], has_headers=has_headers[i])
                 elif has_headers:
@@ -68,6 +71,7 @@ class Study:
                     self._add_checked(file_or_doc=item)
 
     def _add_checked(self, file_or_doc, headers: Optional[dict] = None, has_headers: Optional[bool]= True):
+        logger.debug(f"Add document {file_or_doc}| Study ID: {self.id}")
         if isinstance(file_or_doc, (str, Path)):
             self.documents.append(
                 self.doc_cls(
@@ -89,6 +93,7 @@ class Study:
         
     def add(self, file_or_doc, headers: Optional[dict] = None, has_headers: Optional[bool]= True):
         """Add an Interview object or a file path."""
+        logger.debug(f"Add document {file_or_doc} | Study ID: {self.id}")
         self._add_checked(file_or_doc=file_or_doc, headers=headers, has_headers=has_headers)
 
 
@@ -114,6 +119,7 @@ class Study:
         m : Optional[MelleaSession]
             If provided, passed through to Interview.identify_interviewee().
         """
+        logger.info(f"Identify interviewees for study {self.id}")
         results = {}
         for doc in self.documents:
             predicted = doc.identify_interviewee(m=m)
@@ -147,6 +153,7 @@ class Study:
         dict
             Mapping of interview.id -> ValidatedList[Topic]
         """
+        logger.info(f"Suggest topics for study {self.id}")
         context = interview_context or self.study_context
         logger.info(f"Extracting topics from {len(self.documents)} interviews with context: {context}")
 
@@ -172,6 +179,7 @@ class Study:
         dict
             Mapping of interview.id -> {original_speaker: anonymized_speaker}
         """
+        logger.info(f"Anonymize speakers - Study ID: {self.id}")
         all_mappings = {}
 
         for doc in self.documents:

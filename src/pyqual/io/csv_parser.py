@@ -10,6 +10,7 @@ def parse_csv(path: str, headers: Optional[dict] = None, has_headers = True) -> 
     Parse a CSV transcript into the PyQual schema.
     Must contain at least timestamp, speaker, statement.
     """
+    logger.debug(f"Parse CSV - Path: {path}")
     if has_headers:
         df = pd.read_csv(path) # reads the csv with header
         df = process_headers(df, headers) # process the headers according to the provided ones
