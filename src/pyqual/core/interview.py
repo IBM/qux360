@@ -93,7 +93,7 @@ class Interview:
         ])
 
     def _init_transcript(self, file, headers: Optional[dict] = None, has_headers = True):
-        logger.debug(f"\Init transcript - Interview ID: {self.id} | File: {file}")
+        logger.debug(f"Init transcript - Interview ID: {self.id} | File: {file}")
         if not file:
             return self._empty_transcript()
         
@@ -191,7 +191,7 @@ class Interview:
 
     def show(self, rows: int = 5, speaker: Optional[str] = None, width: int = 60):
         """Pretty-print transcript preview in a clean 3-column layout."""
-        logger.debug(f"View transcript (pretty-print) - Interview ID: {self.id} | Speaker: {speaker} | Rows: {n}")
+        logger.debug(f"View transcript (pretty-print) - Interview ID: {self.id} | Speaker: {speaker} | Rows: {rows}")
         df = self.transcript
         if df.empty:
             print("Transcript is empty.")
