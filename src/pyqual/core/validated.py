@@ -224,7 +224,7 @@ class ValidatedList(Validated[List[T]]):
             raise ValueError("No item validations available")
         return list(zip(self.result, self.item_validations))
 
-    def print_summary(self, title: str = "Validation Summary", item_label: str = "Item") -> None:
+    def print_summary(self, title: str = "Validation Summary", item_label: str = "Item", condensed: bool = False) -> None:
         """
         Print a formatted summary of validation results.
 
@@ -237,28 +237,64 @@ class ValidatedList(Validated[List[T]]):
             Title for the summary section
         item_label : str, default="Item"
             Label to use for items (e.g., "Topic", "Quote", "Code")
+        condensed : bool, default=False
+            If True, shows only the first item with a summary of the rest.
+            Useful for cleaner output when reviewing cached results.
 
         Examples
         --------
         >>> result.print_summary(title="Topic Validation Summary", item_label="Topic")
+        >>> result.print_summary(title="Cached Topics", item_label="Topic", condensed=True)
         """
-        logger.info(f"\n{'='*60}")
-        logger.info(f"{title} ({len(self.result)} items)")
-        logger.info(f"{'='*60}")
+        print(f"\n{'='*60}")
+        print(f"{title} ({len(self.result)} items)")
+        print(f"{'='*60}")
 
         if not self.item_validations:
-            logger.info(f"\n{self.validation.icon()} Overall: {self.validation.status.upper()}")
-            logger.info(f"   {self.validation.explanation}")
-            logger.info(f"{'='*60}\n")
+            print(f"\n{self.validation.icon()} Overall: {self.validation.status.upper()}")
+            print(f"   {self.validation.explanation}")
+            print(f"{'='*60}\n")
             return
 
-        # Print per-item validation details
+        # Condensed mode: Show only first item + summary
+        if condensed and len(self.result) > 0:
+            item, validation = list(self.items_with_validations())[0]
+            status_emoji = {"ok": "✅", "check": "⚠️", "iffy": "❌"}[validation.status]
+
+            # Get item name/title
+            item_name = None
+            for attr in ['topic', 'name', 'title', 'label']:
+                if hasattr(item, attr):
+                    item_name = getattr(item, attr)
+                    break
+
+            print(f"\n1. {item_name or f'{item_label} 1'}")
+
+            # Show abbreviated explanation
+            if hasattr(item, 'explanation'):
+                explanation = item.explanation
+                if len(explanation) > 100:
+                    explanation = explanation[:100] + "..."
+                print(f"   {explanation}")
+
+            print(f"\n   {status_emoji} Validation: {validation.status.upper()}")
+
+            # Show summary of remaining items
+            if len(self.result) > 1:
+                print(f"\n   ... and {len(self.result) - 1} more {item_label.lower()}s")
+
+            print(f"\n{'='*60}")
+            print(f"Overall: {self.validation.status.upper()} - {self.validation.explanation}")
+            print(f"{'='*60}\n")
+            return
+
+        # Full mode: Print per-item validation details
         for i, (item, validation) in enumerate(self.items_with_validations(), 1):
             status_emoji = {"ok": "✅", "check": "⚠️", "iffy": "❌"}[validation.status]
 
             # Visual separator between items
             if i > 1:
-                logger.info(f"\n{'-' * 60}")
+                print(f"\n{'-' * 60}")
 
             # Try to get item name/title (works with objects that have .topic, .name, etc.)
             item_name = None
@@ -268,33 +304,61 @@ class ValidatedList(Validated[List[T]]):
                     break
 
             if item_name:
-                logger.info(f"\n{i}. {item_name}")
+                print(f"\n{i}. {item_name}")
             else:
-                logger.info(f"\n{i}. {item_label} {i}")
+                print(f"\n{i}. {item_label} {i}")
 
-            # Show item content (explanation and quotes if available)
+            # Show interview_id if available (for topics in cross-interview analysis)
+            if hasattr(item, 'interview_id') and item.interview_id:
+                print(f"   Interview: {item.interview_id}")
+
+            # Show item content (explanation and quotes/topics if available)
             if hasattr(item, 'explanation'):
-                logger.info(f"\n   {item.explanation}\n")
+                print(f"\n   {item.explanation}\n")
 
-            if hasattr(item, 'quotes'):
-                logger.info(f"   Quotes ({len(item.quotes)}):")
+            # Show topics (for Theme objects)
+            if hasattr(item, 'topics'):
+                print(f"   Supporting Topics ({len(item.topics)}):")
+                for topic_idx, topic in enumerate(item.topics, 1):
+                    print(f"\n      {topic_idx}. {topic.topic}")
+                    if hasattr(topic, 'interview_id') and topic.interview_id:
+                        print(f"         Interview: {topic.interview_id}")
+                    if hasattr(topic, 'explanation'):
+                        # Truncate long explanations
+                        expl = topic.explanation[:150] + "..." if len(topic.explanation) > 150 else topic.explanation
+                        print(f"         {expl}")
+                    # Show first 2 quotes from each topic
+                    if hasattr(topic, 'quotes') and topic.quotes:
+                        print(f"         Quotes ({len(topic.quotes)}):")
+                        for quote in topic.quotes[:2]:
+                            print(f"           [{quote.index}] {quote.timestamp} {quote.speaker}:")
+                            # Truncate long quotes
+                            quote_text = quote.quote[:100] + "..." if len(quote.quote) > 100 else quote.quote
+                            print(f"           {quote_text}")
+                        if len(topic.quotes) > 2:
+                            print(f"           ... and {len(topic.quotes) - 2} more")
+                print()  # Extra line after topics
+
+            # Show quotes (for Topic objects)
+            elif hasattr(item, 'quotes'):
+                print(f"   Quotes ({len(item.quotes)}):")
                 for quote in item.quotes[:3]:  # Show first 3 quotes
-                    logger.info(f"      [{quote.index}] {quote.timestamp} {quote.speaker}:")
-                    logger.info(f"      {quote.quote}\n")
+                    print(f"      [{quote.index}] {quote.timestamp} {quote.speaker}:")
+                    print(f"      {quote.quote}\n")
                 if len(item.quotes) > 3:
-                    logger.info(f"      ... and {len(item.quotes) - 3} more\n")
+                    print(f"      ... and {len(item.quotes) - 3} more\n")
 
             # Show validation status and checks
-            logger.info(f"   {status_emoji} Validation: {validation.status.upper()}")
+            print(f"   {status_emoji} Validation: {validation.status.upper()}")
 
             # Show validation checks (only non-informational)
             for check in validation.checks:
                 if not check.informational:
                     check_emoji = {"ok": "✅", "check": "⚠️", "iffy": "❌"}[check.status]
-                    logger.info(f"      └─ {check_emoji} {check.method}:")
+                    print(f"      └─ {check_emoji} {check.method}:")
                     # Wrap long explanations with proper indentation
                     wrapped = textwrap.fill(check.explanation, width=70, initial_indent="         ", subsequent_indent="         ")
-                    logger.info(wrapped)
+                    print(wrapped)
 
             # Show informational assessments
             for check in validation.checks:
@@ -302,14 +366,15 @@ class ValidatedList(Validated[List[T]]):
                     strengths = check.metadata.get("strengths", "")
                     weaknesses = check.metadata.get("weaknesses", "")
                     if strengths or weaknesses:
-                        logger.info(f"      ℹ️  LLM Assessment:")
+                        print(f"      ℹ️  LLM Assessment:")
                         if strengths:
                             wrapped_strengths = textwrap.fill(strengths, width=70, initial_indent="         + ", subsequent_indent="           ")
-                            logger.info(wrapped_strengths)
+                            print(wrapped_strengths)
                         if weaknesses:
                             wrapped_weaknesses = textwrap.fill(weaknesses, width=70, initial_indent="         - ", subsequent_indent="           ")
-                            logger.info(wrapped_weaknesses)
+                            print(wrapped_weaknesses)
 
-        logger.info(f"\n{'='*60}")
-        logger.info(f"Overall: {self.validation.status.upper()} - {self.validation.explanation}")
-        logger.info(f"{'='*60}\n")
+        print(f"\n{'='*60}")
+        status_emoji = {"ok": "✅", "check": "⚠️", "iffy": "❌"}[self.validation.status]
+        print(f"Overall: {status_emoji} {self.validation.status.upper()} - {self.validation.explanation}")
+        print(f"{'='*60}\n")

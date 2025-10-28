@@ -32,8 +32,9 @@ logging.basicConfig(
 logging.getLogger("pyqual").setLevel(logging.INFO)
 
 load_dotenv()
+#m = MelleaSession(backend=WatsonxAIBackend(model_id=os.getenv("MODEL_ID_WATSONX")))
 m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID")))
-logging.getLogger('fancy_logger').setLevel(logging.WARNING)
+#logging.getLogger('fancy_logger').setLevel(logging.WARNING)
 
 data_dir = Path(__file__).parent / "data"
 
@@ -76,7 +77,7 @@ if needs_topic_extraction:
     print("\n→ Step 1: Identifying interviewees...")
     results = study.identify_interviewees(m)
     for interview_id, result in results.items():
-        print(f"   {interview_id}: {result.result} ({result.validation.status})")
+        print(f"   {interview_id}: {result.result} ({result.validation})")
 
     # Extract topics (expensive!)
     print("\n→ Step 2: Extracting topics from all interviews...")
@@ -101,7 +102,7 @@ else:
     print("=" * 60)
     print("\n⚡ Skipping topic extraction - using cached results!")
 
-    # Show cached topics with full validation summary using print_summary()
+    # Show cached topics with condensed validation summary
     for interview in study.documents:
         if interview.topics_top_down:
             participant = interview.get_participant_id() or interview.id
@@ -109,46 +110,31 @@ else:
             # Reconstruct ValidatedList from cached data
             topics_validated = interview.get_topics_validated()
             if topics_validated:
-                # Use the built-in print_summary() method
+                # Use condensed mode for cleaner output
                 topics_validated.print_summary(
                     title=f"Cached Topics for {participant}",
-                    item_label="Topic"
+                    item_label="Topic",
+                    condensed=True
                 )
                 print()  # Extra spacing between interviews
 
 # Now run theme analysis (always runs, not cached in this script)
 print("=" * 60)
-print("THEME ANALYSIS: Identifying cross-cutting patterns")
+print("THEMATIC ANALYSIS: Identifying cross-cutting patterns")
 print("=" * 60)
 
-print("\n🔍 Analyzing themes across all interviews...")
-print("   (Theme analysis always runs - not cached for flexibility)\n")
+print("\n🔍 Analyzing themes across all interviews...\n")
 
 # Try different theme extraction parameters
-themes_result = study.suggest_themes(
-    m,
-    max_quotes_per_topic=3,  # Fewer quotes for faster processing
-    max_quote_length=300
-)
+themes_result = study.suggest_themes(m)
 
-# Display results
+
+# Display themes using print_summary
 if themes_result and themes_result.result:
-    print(f"\n✅ Theme extraction completed: {themes_result.validation.status}")
-    print(f"   {themes_result.validation.explanation}\n")
-
-    for idx, theme in enumerate(themes_result.result.themes, start=1):
-        print(f"\n{'=' * 60}")
-        print(f"THEME {idx}: {theme.title}")
-        print(f"{'=' * 60}")
-        print(f"\nDescription: {theme.description}")
-        print(f"\nExplanation: {theme.explanation[:200]}...")
-        print(f"\nSupporting Topics: {len(theme.topics)}")
-        for topic in theme.topics[:3]:  # Show first 3 topics
-            print(f"  • {topic.topic} ({len(topic.quotes)} quotes)")
-        if len(theme.topics) > 3:
-            print(f"  ... and {len(theme.topics) - 3} more")
+    themes_result.print_summary(title="Thematic Analysis Results", item_label="Theme")
 else:
     print(f"⚠️ Theme extraction failed: {themes_result.validation.explanation if themes_result else 'No result'}")
+
 
 print("\n" + "=" * 60)
 print("ANALYSIS COMPLETE")
@@ -158,5 +144,5 @@ print(f"  • {len(study)} interviews processed")
 if needs_topic_extraction:
     print(f"  • Topics extracted and cached to .pyqual_cache/")
 else:
-    print(f"  • Topics loaded from cache (instant!)")
-print(f"  • {len(themes_result.result.themes) if themes_result and themes_result.result else 0} themes identified")
+    print(f"  • Topics loaded from cache")
+print(f"  • {len(themes_result.result) if themes_result and themes_result.result else 0} themes identified")
