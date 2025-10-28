@@ -3,6 +3,7 @@ Core utility functions for PyQual.
 """
 
 import logging
+from typing import List
 
 
 logger = logging.getLogger(__name__)
@@ -49,3 +50,112 @@ def print_mellea_validations(response, title: str = "Validations") -> None:
             if req.check_only:
                 print(f"  ⚙️  (Check-only requirement)")
             print("-" * 40)
+
+
+def validate_transcript_columns(transcript, required_columns: List[str]) -> None:
+    """
+    Validate that required columns exist in transcript.
+
+    Parameters
+    ----------
+    transcript : DataFrame
+        The transcript to validate
+    required_columns : List[str]
+        List of required column names
+
+    Raises
+    ------
+    ValueError
+        If any required columns are missing
+    """
+    missing = [col for col in required_columns if col not in transcript.columns]
+    if missing:
+        missing_str = "', '".join(missing)
+        raise ValueError(
+            f"Transcript is missing required column(s): '{missing_str}'. "
+            f"If your transcript names them differently, you can set up the right headers configuration."
+        )
+
+
+def format_quotes_for_display(quotes: List, max_length: int = 100) -> str:
+    """
+    Format a list of quotes for display in prompts or logs.
+
+    Parameters
+    ----------
+    quotes : List[Quote]
+        List of Quote objects to format
+    max_length : int, optional
+        Maximum length of quote text (default: 100)
+
+    Returns
+    -------
+    str
+        Formatted quotes as newline-separated string
+    """
+    return "\n".join(
+        f"- [{q.index}] {q.quote[:max_length]}..."
+        for q in quotes
+    )
+
+
+def parse_quality_rating(rating: str) -> tuple[str, str]:
+    """
+    Parse LLM quality rating into status and explanation.
+
+    Maps quality ratings to IffyIndex statuses:
+    - "excellent" -> "ok"
+    - "acceptable" -> "check"
+    - "poor" or other -> "iffy"
+
+    Parameters
+    ----------
+    rating : str
+        The LLM rating response (should start with rating keyword)
+
+    Returns
+    -------
+    tuple[str, str]
+        (status, explanation) where status is "ok", "check", or "iffy"
+    """
+    rating_lower = rating.strip().lower()
+
+    if rating_lower.startswith("excellent"):
+        return "ok", rating
+    elif rating_lower.startswith("acceptable"):
+        return "check", rating
+    elif rating_lower.startswith("poor"):
+        return "iffy", rating
+    else:
+        return "iffy", f"Unexpected LLM response: {rating}"
+
+
+def parse_coherence_rating(rating: str) -> tuple[str, str]:
+    """
+    Parse LLM coherence rating into status and prefix.
+
+    Maps coherence ratings to IffyIndex statuses:
+    - "strong" -> "ok", "Strong coherence"
+    - "acceptable" -> "check", "Acceptable coherence (review recommended)"
+    - "weak" or other -> "iffy", "Weak coherence"
+
+    Parameters
+    ----------
+    rating : str
+        The coherence rating ("Strong", "Acceptable", or "Weak")
+
+    Returns
+    -------
+    tuple[str, str]
+        (status, prefix) where status is "ok", "check", or "iffy"
+    """
+    rating_lower = rating.strip().lower()
+
+    if rating_lower == "strong":
+        return "ok", "Strong coherence"
+    elif rating_lower == "acceptable":
+        return "check", "Acceptable coherence (review recommended)"
+    elif rating_lower == "weak":
+        return "iffy", "Weak coherence"
+    else:
+        return "check", "Coherence assessment unclear"
