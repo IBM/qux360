@@ -8,7 +8,7 @@ from .interview import Interview
 from .models import ThemeList, TopicList, CoherenceAssessment
 from .validated import Validated, ValidatedList
 from .iffy import IffyIndex
-from .utils import print_mellea_validations
+from .utils import print_mellea_validations, parse_coherence_rating
 from mellea import MelleaSession
 from mellea.stdlib.sampling import RejectionSamplingStrategy
 
@@ -397,21 +397,11 @@ class Study:
             # Extract the validated CoherenceAssessment from the SamplingResult
             coherence_result = CoherenceAssessment.model_validate_json(assessment._underlying_value)
 
-            # Map rating to IffyIndex status
-            rating_lower = coherence_result.rating.lower()
-            if rating_lower == 'strong':
-                status = 'ok'
-                status_explanation = f"Strong coherence: {coherence_result.explanation}"
-            elif rating_lower == 'acceptable':
-                status = 'check'
-                status_explanation = f"Acceptable coherence (review recommended): {coherence_result.explanation}"
-            elif rating_lower == 'weak':
-                status = 'iffy'
-                status_explanation = f"Weak coherence: {coherence_result.explanation}"
-            else:
-                # Shouldn't happen with Literal type, but just in case
-                status = 'check'
-                status_explanation = f"Coherence assessment unclear: {coherence_result.explanation}"
+            # Parse rating using utility function
+            status, prefix = parse_coherence_rating(coherence_result.rating)
+            status_explanation = f"{prefix}: {coherence_result.explanation}"
+
+            if status == 'check' and coherence_result.rating.lower() not in ['strong', 'acceptable', 'weak']:
                 logger.warning(f"Unexpected coherence rating for theme '{theme.title}': {coherence_result.rating}")
 
             # Create required coherence check
