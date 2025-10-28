@@ -11,7 +11,7 @@ import logging
 # Configure logging
 logging.basicConfig(
     level=logging.WARNING,  # Root: suppress all libraries by default
-    format='%(levelname)s - %(name)s - %(message)s'
+    format='%(message)s'
 )
 
 # Enable INFO logging only for pyqual
@@ -27,6 +27,8 @@ data_dir = Path(__file__).parent / "data"
 file = data_dir / "interview_A.csv"
 
 
+
+
 # STEP 1: Load interview
 print("=" * 60)
 print("STEP 1: Loading interview")
@@ -40,11 +42,14 @@ config_file = Path(__file__).parent / "config.json"
 i = Interview(file)
 # [OPTION B] create an instance with headers config
 '''
-# loads config file to get the headers names provided by the user
-with open(config_file, "r", encoding="utf-8") as f:
-    config = json.load(f)
-# create an instance with headers config
-i = Interview(file, headers=config['headers'])
+try:
+    # loads config file to get the headers names provided by the user
+    with open(config_file, "r", encoding="utf-8") as f:
+        config = json.load(f)
+    # create an instance with headers config
+    i = Interview(file, headers=config['headers'])
+except ValueError as e:
+    raise e
 '''
 
 # see what we loaded

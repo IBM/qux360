@@ -27,7 +27,7 @@ import logging
 # Configure logging
 logging.basicConfig(
     level=logging.WARNING,
-    format='%(levelname)s - %(name)s - %(message)s'
+    format='%(message)s'
 )
 logging.getLogger("pyqual").setLevel(logging.INFO)
 
