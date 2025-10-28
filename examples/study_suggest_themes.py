@@ -88,28 +88,10 @@ themes_result = study.suggest_themes(
     max_quote_length=500     # Truncate long quotes to 500 characters
 )
 
-# Display themes
+# Display themes using print_summary
 if themes_result and themes_result.result:
-    print(f"\n✅ Theme extraction completed: {themes_result.validation.status}")
-    print(f"   {themes_result.validation.explanation}\n")
-
-    for idx, theme in enumerate(themes_result.result.themes, start=1):
-        print(f"\n{'=' * 60}")
-        print(f"THEME {idx}: {theme.title}")
-        print(f"{'=' * 60}")
-        print(f"\nDescription: {theme.description}")
-        print(f"\nExplanation: {theme.explanation}")
-        print(f"\nSupporting Topics ({len(theme.topics)}):")
-
-        for topic in theme.topics:
-            print(f"\n  • {topic.topic}")
-            print(f"    Explanation: {topic.explanation}")
-            print(f"    Quotes ({len(topic.quotes)}):")
-            for quote in topic.quotes[:3]:  # Show first 3 quotes
-                print(f"      [{quote.index}] {quote.timestamp} {quote.speaker}:")
-                print(f"      {quote.quote}\n")
-            if len(topic.quotes) > 3:
-                print(f"      ... and {len(topic.quotes) - 3} more\n")
+    # Use built-in print_summary to show themes with validation
+    themes_result.print_summary(title="Theme Analysis Results", item_label="Theme")
 else:
     print(f"⚠️ Theme extraction failed: {themes_result.validation.explanation if themes_result else 'No result'}")
 

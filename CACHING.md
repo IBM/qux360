@@ -167,8 +167,14 @@ for interview in study.documents:
   "speaker_mapping": {"Speaker1": "P1"},
   "metadata": {"participant_id": "P1"},
   "topics_top_down": {
-    "topics": [...],
-    "interview_id": "interview_abc123",
+    "topics": [
+      {
+        "topic": "...",
+        "explanation": "...",
+        "quotes": [...],
+        "interview_id": "interview_abc123"
+      }
+    ],
     "generated_at": "2025-01-15T10:30:00"
   },
   "topics_top_down_validation": {

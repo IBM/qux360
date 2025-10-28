@@ -5,10 +5,12 @@ from typing import Optional, List
 from datetime import datetime
 
 from .interview import Interview
-from .models import ThemeList, TopicList
-from .validated import Validated
+from .models import ThemeList, TopicList, CoherenceAssessment
+from .validated import Validated, ValidatedList
 from .iffy import IffyIndex
+from .utils import print_mellea_validations
 from mellea import MelleaSession
+from mellea.stdlib.sampling import RejectionSamplingStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -204,6 +206,358 @@ class Study:
             f"metadata={self.metadata}>"
         )
 
+    def _aggregate_theme_validations(self, theme_validations: List[IffyIndex]) -> IffyIndex:
+        """
+        Aggregate per-theme validations using consensus with escalation.
+
+        Uses consensus aggregation but escalates to "check" if ANY theme has issues.
+        This ensures users are flagged to review even if majority are OK.
+
+        Parameters
+        ----------
+        theme_validations : List[IffyIndex]
+            Per-theme validation results
+
+        Returns
+        -------
+        IffyIndex
+            Overall validation with detailed status counts in explanation
+        """
+        if not theme_validations:
+            return IffyIndex.from_check(
+                method="generation",
+                status="iffy",
+                explanation="No themes were generated"
+            )
+
+        # Get consensus result
+        consensus_result = IffyIndex.from_checks(
+            theme_validations,
+            aggregation="consensus"
+        )
+
+        # Count statuses for detailed explanation
+        status_counts = {"ok": 0, "check": 0, "iffy": 0}
+        for val in theme_validations:
+            status_counts[val.status] += 1
+
+        # Check if any themes have issues
+        has_issues = status_counts["check"] > 0 or status_counts["iffy"] > 0
+
+        # Escalate to "check" if consensus says "ok" but there are issues
+        # This ensures users are flagged to review even if majority are OK
+        if has_issues and consensus_result.status == "ok":
+            final_status = "check"
+            explanation = (
+                f"{status_counts['ok']}/{len(theme_validations)} themes OK, "
+                f"but {status_counts['check']} need review"
+            )
+            if status_counts['iffy'] > 0:
+                explanation += f" and {status_counts['iffy']} have issues"
+        else:
+            final_status = consensus_result.status
+            # Build detailed explanation with counts
+            explanation = f"{status_counts['ok']}/{len(theme_validations)} themes validated successfully"
+            if status_counts['check'] > 0:
+                explanation += f", {status_counts['check']} need review"
+            if status_counts['iffy'] > 0:
+                explanation += f", {status_counts['iffy']} have issues"
+
+        return IffyIndex.from_check(
+            method="theme_validation_summary",
+            status=final_status,
+            explanation=explanation
+        )
+
+    def _validate_theme(self, theme, hydration_result: dict, m: MelleaSession, study_context: str) -> IffyIndex:
+        """
+        Validate a single theme based on hydration, coverage, and LLM assessment.
+
+        Also sets theme.prospective flag based on coverage and topic count.
+
+        Parameters
+        ----------
+        theme : Theme
+            The theme to validate
+        hydration_result : dict
+            Hydration results with keys: "total", "hydrated", "failed"
+        m : MelleaSession
+            Mellea session for LLM-as-judge validation
+        study_context : str
+            Study context for validation
+
+        Returns
+        -------
+        IffyIndex
+            Aggregated validation result for this theme
+        """
+        checks = []
+
+        # Check 1: Topic hydration success
+        if hydration_result["failed"]:
+            checks.append(IffyIndex.from_check(
+                method="topic_hydration",
+                status="check",
+                explanation=f"{len(hydration_result['failed'])}/{hydration_result['total']} topics failed to hydrate: {', '.join(hydration_result['failed'])}"
+            ))
+        else:
+            checks.append(IffyIndex.from_check(
+                method="topic_hydration",
+                status="ok",
+                explanation=f"All {hydration_result['total']} topics successfully hydrated"
+            ))
+
+        # Check 2: Cross-interview coverage
+        interview_ids = set(t.interview_id for t in theme.topics if t.interview_id)
+        if len(interview_ids) >= 2:
+            checks.append(IffyIndex.from_check(
+                method="cross_interview_coverage",
+                status="ok",
+                explanation=f"Theme spans {len(interview_ids)} interviews"
+            ))
+        else:
+            checks.append(IffyIndex.from_check(
+                method="cross_interview_coverage",
+                status="iffy",
+                explanation=f"Theme only spans {len(interview_ids)} interview(s)"
+            ))
+
+        # Check 3: Minimum topic count
+        if len(theme.topics) >= 2:
+            checks.append(IffyIndex.from_check(
+                method="topic_count",
+                status="ok",
+                explanation=f"Theme has {len(theme.topics)} supporting topics"
+            ))
+        else:
+            checks.append(IffyIndex.from_check(
+                method="topic_count",
+                status="check",
+                explanation=f"Theme has only {len(theme.topics)} supporting topic(s)"
+            ))
+
+        # Derive prospective flag from validation checks
+        # Prospective = < 2 interviews OR < 2 topics
+        theme.prospective = (len(interview_ids) < 2 or len(theme.topics) < 2)
+
+        # Check 4: LLM-as-judge coherence assessment
+        logger.info(f"  → Running LLM coherence check for theme: {theme.title}")
+
+        # Build topics summary for LLM
+        topics_summary = []
+        for topic in theme.topics:
+            interview_label = topic.interview_id or "unknown"
+            topics_summary.append(f"- {topic.topic} (from {interview_label})")
+            topics_summary.append(f"  {topic.explanation}")
+        topics_text = "\n".join(topics_summary)
+
+        coherence_prompt = """
+        You identified the theme "{{theme_title}}" in a qualitative study.
+
+        Theme: {{theme_title}}
+        Description: {{description}}
+        Explanation: {{explanation}}
+
+        Supporting Topics:
+        {{topics_summary}}
+
+        Study Context: {{study_context}}
+
+        Evaluate the COHERENCE of this theme: Do the supporting topics genuinely relate to each other and to the theme?
+
+        Consider:
+        - Do the topics share a common conceptual thread?
+        - Are any topics tangential or weakly related?
+        - Does the theme accurately capture what unifies these topics?
+
+        Rate the coherence:
+        - **Strong**: Topics clearly relate to each other and to the theme with a tight conceptual fit
+        - **Acceptable**: Topics generally relate but some connections may be loose or require interpretation
+        - **Weak**: Topics appear disconnected or the theme doesn't accurately capture their commonality
+        """
+
+        try:
+            assessment = m.instruct(
+                coherence_prompt,
+                user_variables={
+                    "theme_title": theme.title,
+                    "description": theme.description,
+                    "explanation": theme.explanation,
+                    "topics_summary": topics_text,
+                    "study_context": study_context
+                },
+                format=CoherenceAssessment,
+                strategy=RejectionSamplingStrategy(loop_budget=2),
+                return_sampling_results=True
+            )
+
+            # Print Mellea validations if available
+            print_mellea_validations(assessment, title=f"Coherence Check Validations for '{theme.title}'")
+
+            # Extract the validated CoherenceAssessment from the SamplingResult
+            coherence_result = CoherenceAssessment.model_validate_json(assessment._underlying_value)
+
+            # Map rating to IffyIndex status
+            rating_lower = coherence_result.rating.lower()
+            if rating_lower == 'strong':
+                status = 'ok'
+                status_explanation = f"Strong coherence: {coherence_result.explanation}"
+            elif rating_lower == 'acceptable':
+                status = 'check'
+                status_explanation = f"Acceptable coherence (review recommended): {coherence_result.explanation}"
+            elif rating_lower == 'weak':
+                status = 'iffy'
+                status_explanation = f"Weak coherence: {coherence_result.explanation}"
+            else:
+                # Shouldn't happen with Literal type, but just in case
+                status = 'check'
+                status_explanation = f"Coherence assessment unclear: {coherence_result.explanation}"
+                logger.warning(f"Unexpected coherence rating for theme '{theme.title}': {coherence_result.rating}")
+
+            # Create required coherence check
+            coherence_check = IffyIndex.from_check(
+                method="llm_coherence",
+                status=status,
+                explanation=status_explanation
+            )
+            checks.append(coherence_check)
+
+        except Exception as e:
+            logger.warning(f"LLM coherence assessment failed for theme '{theme.title}': {str(e)}")
+            # If LLM fails, add a "check" status (requires manual review)
+            checks.append(IffyIndex.from_check(
+                method="llm_coherence",
+                status="check",
+                explanation=f"Coherence assessment failed - manual review required: {str(e)}"
+            ))
+
+        # Aggregate all checks (only non-informational checks affect status)
+        return IffyIndex.from_checks(checks, aggregation="strictest")
+
+    def _hydrate_theme_topics(
+        self,
+        theme_list: ThemeList,
+        topic_lists: List[TopicList]
+    ) -> dict:
+        """
+        Replace LLM-generated topics in themes with original Topic objects.
+
+        This ensures that topic explanations, quotes, and metadata are preserved
+        exactly as they were in the original topic extraction, rather than relying
+        on the LLM to faithfully copy all fields.
+
+        Parameters
+        ----------
+        theme_list : ThemeList
+            Theme list with LLM-generated topics to hydrate
+        topic_lists : List[TopicList]
+            Original topic lists to use as the source of truth
+
+        Returns
+        -------
+        dict
+            Hydration results mapping theme.title -> {"total": int, "hydrated": int, "failed": list}
+        """
+        # Build lookup table: (interview_id, topic_title) -> original Topic
+        topic_lookup = {}
+        for topic_list in topic_lists:
+            for topic in topic_list.topics:
+                key = (topic.interview_id, topic.topic)
+                topic_lookup[key] = topic
+
+        logger.info(f"Built topic lookup with {len(topic_lookup)} entries")
+
+        # Track hydration results per theme
+        hydration_results = {}
+
+        # Hydrate themes: Replace LLM-generated topics with original Topic objects
+        for theme in theme_list.themes:
+            hydrated_topics = []
+            failed_topics = []
+
+            for llm_topic in theme.topics:
+                key = (llm_topic.interview_id, llm_topic.topic)
+                original_topic = topic_lookup.get(key)
+
+                if original_topic:
+                    # Use the original topic (preserves full explanation and quotes)
+                    hydrated_topics.append(original_topic)
+                else:
+                    # Fallback: Keep LLM version if we can't find original
+                    # This might happen if LLM slightly changed the topic title
+                    hydrated_topics.append(llm_topic)
+                    failed_topics.append(f"{llm_topic.topic} ({llm_topic.interview_id})")
+                    logger.warning(f"Could not find original topic for '{llm_topic.topic}' "
+                                 f"from {llm_topic.interview_id}. Using LLM version.")
+
+            theme.topics = hydrated_topics
+            hydration_results[theme.title] = {
+                "total": len(theme.topics),
+                "hydrated": len(theme.topics) - len(failed_topics),
+                "failed": failed_topics
+            }
+
+        logger.info("Completed topic hydration for all themes")
+        return hydration_results
+
+    def _build_topics_text(
+        self,
+        topic_lists: List[TopicList],
+        max_quotes_per_topic: Optional[int] = None,
+        max_quote_length: Optional[int] = None
+    ) -> tuple[str, int, int]:
+        """
+        Build a text representation of topics from multiple interviews.
+
+        Parameters
+        ----------
+        topic_lists : List[TopicList]
+            Topic lists from interviews to format
+        max_quotes_per_topic : int, optional
+            Maximum number of quotes to include per topic
+        max_quote_length : int, optional
+            Maximum character length for each quote
+
+        Returns
+        -------
+        tuple[str, int, int]
+            (topics_text, total_quotes_truncated, total_quote_length_truncated)
+        """
+        topics_text_parts = []
+        total_quotes_truncated = 0
+        total_quote_length_truncated = 0
+
+        for topic_list in topic_lists:
+            # Get interview_id from first topic in the list (they should all be the same)
+            current_interview_id = topic_list.topics[0].interview_id if topic_list.topics else "unknown"
+            topics_text_parts.append(f"\n=== Interview: {current_interview_id} ===")
+
+            for topic in topic_list.topics:
+                interview_id = topic.interview_id or "unknown"
+                topics_text_parts.append(f"\nTopic: {topic.topic}")
+                topics_text_parts.append(f"Interview: {interview_id}")
+                topics_text_parts.append(f"Explanation: {topic.explanation}")
+
+                # Determine how many quotes to include
+                quotes_to_include = topic.quotes
+                if max_quotes_per_topic is not None and len(topic.quotes) > max_quotes_per_topic:
+                    quotes_to_include = topic.quotes[:max_quotes_per_topic]
+                    total_quotes_truncated += len(topic.quotes) - max_quotes_per_topic
+
+                topics_text_parts.append(f"Quotes ({len(quotes_to_include)} of {len(topic.quotes)}):")
+
+                for quote in quotes_to_include:
+                    # Truncate quote text if needed
+                    quote_text = quote.quote
+                    if max_quote_length is not None and len(quote_text) > max_quote_length:
+                        quote_text = quote_text[:max_quote_length] + "..."
+                        total_quote_length_truncated += 1
+
+                    topics_text_parts.append(f"  - [{quote.index}] {quote.timestamp} {quote.speaker}: {quote_text}")
+
+        topics_text = "\n".join(topics_text_parts)
+        return topics_text, total_quotes_truncated, total_quote_length_truncated
+
     def suggest_themes(
         self,
         m: MelleaSession,
@@ -323,36 +677,14 @@ class Study:
             )
 
         # Build a comprehensive text representation of all topics
-        topics_text_parts = []
-        total_quotes_truncated = 0
-        total_quote_length_truncated = 0
+        topics_text, total_quotes_truncated, total_quote_length_truncated = self._build_topics_text(
+            all_topic_lists,
+            max_quotes_per_topic=max_quotes_per_topic,
+            max_quote_length=max_quote_length
+        )
 
-        for topic_list in all_topic_lists:
-            interview_id = topic_list.interview_id or "unknown"
-            topics_text_parts.append(f"\n=== Interview: {interview_id} ===")
-            for topic in topic_list.topics:
-                topics_text_parts.append(f"\nTopic: {topic.topic}")
-                topics_text_parts.append(f"Interview: {interview_id}")
-                topics_text_parts.append(f"Explanation: {topic.explanation}")
-
-                # Determine how many quotes to include
-                quotes_to_include = topic.quotes
-                if max_quotes_per_topic is not None and len(topic.quotes) > max_quotes_per_topic:
-                    quotes_to_include = topic.quotes[:max_quotes_per_topic]
-                    total_quotes_truncated += len(topic.quotes) - max_quotes_per_topic
-
-                topics_text_parts.append(f"Quotes ({len(quotes_to_include)} of {len(topic.quotes)}):")
-
-                for quote in quotes_to_include:
-                    # Truncate quote text if needed
-                    quote_text = quote.quote
-                    if max_quote_length is not None and len(quote_text) > max_quote_length:
-                        quote_text = quote_text[:max_quote_length] + "..."
-                        total_quote_length_truncated += 1
-
-                    topics_text_parts.append(f"  - [{quote.index}] {quote.timestamp} {quote.speaker}: {quote_text}")
-
-        topics_text = "\n".join(topics_text_parts)
+        # Log the complete topics_text for debugging (DEBUG level to avoid cluttering output)
+        logger.debug(f"Topics text for theme extraction:\n{topics_text}")
 
         # Estimate tokens (rough heuristic: 1 token ≈ 4 characters)
         estimated_tokens = len(topics_text) // 4
@@ -388,40 +720,44 @@ class Study:
 
         # Handle n parameter (unlimited if None)
         if n is not None:
-            n_instruction = f"{n} cross-cutting themes"
-            n_requirement = f"Generate exactly {n} themes"
+            n_instruction = f"{n} cross-cutting, recurring themes"
+            n_requirement = f"Generate exactly {n} recurring themes"
         else:
-            n_instruction = "as many cross-cutting themes as appropriate"
-            n_requirement = "Generate as many themes as needed to capture the key patterns"
+            n_instruction = "all cross-cutting, recurring themes that emerge from the data"
+            n_requirement = "Generate all themes that represent significant, recurring patterns across interviews. Focus on quality over quantity - include only themes with strong evidence."
 
         prompt = """
         You are analyzing topics extracted from multiple interviews in a qualitative study.
-        Your task is to identify """ + n_instruction + """ that emerge across these interviews.
+        Your task is to identify """ + n_instruction + """ that emerge across topics from these interviews. 
+        Make use of all the topics provided. Themes should be supported by multiple topics. You MAY include themes 
+        from a single interview if they show strong potential.
 
         Study Context: {{context}}
 
         Topics from Interviews:
         {{topics_text}}
-
-        For each theme, provide:
-        1. A concise title (2-5 words)
-        2. A description explaining what the theme represents
-        3. An explanation of why this theme was chosen and how it manifests across interviews
-        4. The specific topics (with their quotes) that support this theme
         """
+        #         For each theme, provide:
+        # 1. A descriptive title (2-5 words)
+        # 2. A description explaining what the theme represents
+        # 3. An explanation of why this theme was chosen and how it manifests across interviews
+        # 4. The specific topics (with their quotes) that support this theme
 
         logger.debug(f"Calling Mellea for theme extraction (n={'unlimited' if n is None else n})...")
 
         requirements = [
             f"Each theme should be specific to the context of the overall study: {context_str}",
-            "Each theme title should be 2-5 words, concise, concrete, but nuanced",
-            "Each theme must include a detailed explanation of why it was chosen (more than 1 sentence)",
-            "Each theme must reference the specific topics that support it, including their quotes",
-            n_requirement
+            "Each theme must include a description explaining what the theme represents",
+            "Each theme title should be descriptive, 2-5 words",
+            "Each theme must include a detailed explanation of why it was chosen (more than 1 sentence) and how it manifests across interviews.",
+            "Each theme must reference the specific topics that support it",
+            "For each topic in a theme, you MUST include the exact 'topic' title and 'interview_id' as shown in the input",
+            "Each theme should be supported by multiple topics",
         ]
 
         try:
             import time
+            
             start_time = time.time()
 
             response = m.instruct(
@@ -435,35 +771,59 @@ class Study:
                     "temperature": 0.0
                 },
                 requirements=requirements,
-                format=ThemeList
+                format=ThemeList,
+                strategy=RejectionSamplingStrategy(loop_budget=1),
+                return_sampling_results=True
             )
 
             elapsed_time = time.time() - start_time
-            logger.debug(f"Mellea theme extraction completed in {elapsed_time:.2f} seconds")
+            logger.info(f"Mellea theme extraction completed in {elapsed_time:.2f} seconds")
+
+            # Print validation results
+            print_mellea_validations(response, title="Theme Extraction Validations")
 
             # Parse response
             theme_list = ThemeList.model_validate_json(response._underlying_value)
-            logger.debug(f"Successfully parsed {len(theme_list.themes)} themes from LLM response")
+            logger.info(f"Successfully parsed {len(theme_list.themes)} themes from LLM response")
+
+            # Hydrate: Replace LLM-generated topics with original Topic objects
+            hydration_results = self._hydrate_theme_topics(theme_list, all_topic_lists)
 
             # Populate metadata
             theme_list.study_id = self.id
             theme_list.generated_at = datetime.now().isoformat()
 
+            # Validate each theme
+            theme_validations = []
+
+            logger.info("Starting per-theme validation...")
+            for idx, theme in enumerate(theme_list.themes, start=1):
+                # Validate this theme
+                logger.info(f"Validating theme {idx}/{len(theme_list.themes)}: {theme.title}")
+                theme_validation = self._validate_theme(
+                    theme,
+                    hydration_results[theme.title],
+                    m,
+                    context_str
+                )
+                theme_validations.append(theme_validation)
+                logger.info(f"  Theme '{theme.title}' validation: {theme_validation.status}")
+
+            # Aggregate per-theme validations into overall validation
+            overall_validation = self._aggregate_theme_validations(theme_validations)
+
             # Cache the ThemeList
             self.themes_top_down = theme_list
             logger.debug(f"Cached ThemeList in study.themes_top_down")
 
-            # Create validation result
-            # For now, simple validation - could be enhanced with quote checking, etc.
-            validation = IffyIndex.from_check(
-                method="theme_generation",
-                status="ok",
-                explanation=f"Generated {len(theme_list.themes)} themes across {len(all_topic_lists)} interviews"
+            logger.info(f"Theme generation completed successfully (overall status: {overall_validation.status})")
+
+            # Return ValidatedList with per-theme validations
+            return ValidatedList(
+                result=theme_list.themes,
+                validation=overall_validation,
+                item_validations=theme_validations
             )
-
-            logger.debug(f"Theme generation completed successfully")
-
-            return Validated(result=theme_list, validation=validation)
 
         except Exception as e:
             logger.error(f"Theme generation failed: {str(e)}")

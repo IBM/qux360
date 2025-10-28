@@ -14,6 +14,7 @@ from mellea import MelleaSession
 from mellea.stdlib.sampling import RejectionSamplingStrategy
 from pyqual.core.iffy import IffyIndex
 from pyqual.core.validated import Validated, ValidatedList
+from pyqual.core.utils import print_mellea_validations
 import copy
 
 from .models import TopicList, Quote
@@ -653,7 +654,7 @@ class Interview:
         num_req = f"exactly {n} unique, non-generic" if n else "as many as possible unique, non-generic"
         
         prompt = """
-        You are given an interview transcript. Your task is to identify {{num_req}} topics in the statements made by the interviewee {{interviewee}}, provide a separate explanation, and separate supporting quotes from the interviewee.
+        You are given an interview transcript. Your task is to identify {{num_req}} topics in the statements made by the interviewee {{interviewee}}, provide a detailed explanation, and supporting quotes from the interviewee.
 
         Interview Transcript:
         {{text}} 
@@ -663,8 +664,9 @@ class Interview:
 
         requirements=[
                 f"Each topic should be specific to the context of the overall interview: {interview_context}",
-                "Each topic should be between 2 and 5 words long.",
+                "Each topic should be descriptive, 2 to 5 words long.",
                 "Each topic must include a detailed explanation, why it was chosen. More than 1 sentence." if explain else "Explanations must be omitted. Use 'None'.",
+                "Each topic must be supported by one or more quotes",
                 "Each quote must include row number (index), timestamp, and speaker."]
 
         logger.debug(f"Requirements passed in: {requirements}")
@@ -690,29 +692,19 @@ class Interview:
             logger.info(("*** Response"))
             logger.info(response)
 
-        # Print validation results at INFO level
-        if logger.isEnabledFor(logging.INFO):
-            logger.info(("**** Validations"))
-            for i, validation_group in enumerate(response.sample_validations, start=1):
-                logger.info(f"\n--- Validation Group {i} ---")
-                for req, res in validation_group:
-                    logger.info(f"Requirement: {req.description or '(no description)'}")
-                    logger.info(f".  Result: {res._result}")
-                    if res.score is not None:
-                        logger.info(f"  🔢 Score: {res.score:.2f}")
-                    if res.reason:
-                        logger.info(f".  Reason: {res.reason}")
-                    if req.check_only:
-                        logger.info(f"  ⚙️  (Check-only requirement)")
-                    logger.info("-" * 40)
+        # Print validation results
+        print_mellea_validations(response, title="Topic Extraction Validations")
 
         try:
             topics = TopicList.model_validate_json(response._underlying_value)
             logger.debug(f"Successfully parsed {len(topics.topics)} topics from LLM response")
 
             # Populate TopicList metadata
-            topics.interview_id = self.id
             topics.generated_at = datetime.now().isoformat()
+
+            # Populate interview_id on each Topic
+            for topic in topics.topics:
+                topic.interview_id = self.id
 
             # NEW: Dual validation per topic
             topic_validations = []
@@ -765,7 +757,7 @@ class Interview:
                 2. Well-supported by the quotes
 
                 Rate the topic quality as: "excellent", "acceptable", or "poor"
-                Provide a brief reason (1 sentence).
+                Provide a reason (1 sentence).
                 """
 
                 quotes_text = "\n".join(
@@ -783,7 +775,7 @@ class Interview:
                     },
                     requirements=[
                         "Answer must start with rating: 'excellent', 'acceptable', or 'poor'",
-                        "Follow the rating with a brief reason (1 sentence)"
+                        "Answer must include a reason (1 sentence)"
                     ]
                 )).strip().lower()
 

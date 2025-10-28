@@ -219,10 +219,10 @@ class TestAutomaticCaching:
                 Topic(
                     topic="Test Topic",
                     explanation="Test explanation",
-                    quotes=[Quote(index=0, timestamp="00:00:00", speaker="P1", quote="Test")]
+                    quotes=[Quote(index=0, timestamp="00:00:00", speaker="P1", quote="Test")],
+                    interview_id="test_123"
                 )
-            ],
-            interview_id="test_123"
+            ]
         )
 
         interview.topics_top_down_validation = IffyIndex.from_check(
