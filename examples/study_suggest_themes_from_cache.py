@@ -32,20 +32,23 @@ logging.basicConfig(
 logging.getLogger("pyqual").setLevel(logging.INFO)
 
 load_dotenv()
+
+ROOT_DIR = os.path.dirname(Path('__file__').absolute())
+
 #m = MelleaSession(backend=WatsonxAIBackend(model_id=os.getenv("MODEL_ID_WATSONX")))
 m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID")))
 #logging.getLogger('fancy_logger').setLevel(logging.WARNING)
 
-data_dir = Path(__file__).parent / "data"
+data_dir = os.path.join(ROOT_DIR, "examples/data")
 
 print("=" * 60)
 print("SMART LOADING: Interviews + Topics")
 print("=" * 60)
 
 interview_files = [
-    data_dir / "interview_A.csv",
-    data_dir / "interview_B.csv",
-    data_dir / "interview_C.csv"
+    os.path.join(data_dir, "interview_A.csv"),
+    os.path.join(data_dir, "interview_B.csv"),
+    os.path.join(data_dir, "interview_C.csv")
 ]
 
 # Load study with automatic caching (default behavior)

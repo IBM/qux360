@@ -84,7 +84,7 @@ def save_interview_state(interview: 'Interview', cache_path: Optional[Path] = No
     """
     from .interview import Interview  # Avoid circular import
 
-    logger.debug(f"Save interview state\n{interview.to_json(indent=2, sort_keys=True)}")
+    logger.debug(f"Save interview state - Interview ID: {interview.id}")
 
     if cache_path is None:
         if not hasattr(interview, 'file_path') or interview.file_path is None:

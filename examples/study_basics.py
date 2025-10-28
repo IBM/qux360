@@ -17,18 +17,20 @@ logging.getLogger("pyqual").setLevel(logging.INFO)
 
 load_dotenv()
 
+ROOT_DIR = os.path.dirname(Path('__file__').absolute())
+
 m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID")))
 
 # Suppress Mellea's FancyLogger (MelleaSession resets it to DEBUG, so we set it here)
 logging.getLogger('fancy_logger').setLevel(logging.WARNING)
 
-data_dir = Path(__file__).parent / "data"
+data_dir = os.path.join(ROOT_DIR, "examples/data")
 
-file1 = data_dir / "interview_A.csv"
-file2 = data_dir / "interview_B.docx"
-file3 = data_dir / "interview_C.xlsx"
+file1 = os.path.join(data_dir, "interview_A.csv")
+file2 = os.path.join(data_dir, "interview_B.csv")
+file3 = os.path.join(data_dir, "interview_C.csv")
 
-config_file = Path(__file__).parent / "config.json"
+config_file = os.path.join(ROOT_DIR, "examples/config.json")
 
 # [OPTION A] create an instance without headers config (has headers by default)
 study = Study([file1, file2, file3])
