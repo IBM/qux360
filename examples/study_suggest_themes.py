@@ -9,7 +9,7 @@ import logging
 # Configure logging
 logging.basicConfig(
     level=logging.WARNING,  # Root: suppress all libraries by default
-    format='%(levelname)s - %(name)s - %(message)s'
+    format='%(message)s'
 )
 
 # Enable INFO logging only for pyqual

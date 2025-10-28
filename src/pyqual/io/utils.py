@@ -54,7 +54,7 @@ def process_headers(df: pd.DataFrame, headers: dict) -> dict:
     logger.debug(f"Process headers - Headers: {headers}")
     
     if headers is None:
-        logger.info("Custom headers not provided. Using default headers ['timestamp', 'speaker', 'statement']")
+        logger.debug("Custom headers not provided. Using default headers ['timestamp', 'speaker', 'statement']")
         headers = {
             "timestamp": "timestamp",
             "speaker": "speaker",

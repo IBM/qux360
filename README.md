@@ -125,7 +125,7 @@ from pyqual.core.interview import Interview
 i = Interview("examples/data/interview_A.docx")
 
 # Preview first few rows
-i.show(n=5)
+i.show(rows=5)
 
 # List speakers
 print("Speakers:", i.get_speakers())

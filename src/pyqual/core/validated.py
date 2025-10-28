@@ -1,12 +1,15 @@
 from dataclasses import dataclass, field
 from typing import TypeVar, Generic, List
 import textwrap
+import logging
 
 from .iffy import IffyIndex
 
 
 T = TypeVar('T')
 
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class Validated(Generic[T]):
@@ -239,14 +242,14 @@ class ValidatedList(Validated[List[T]]):
         --------
         >>> result.print_summary(title="Topic Validation Summary", item_label="Topic")
         """
-        print(f"\n{'='*60}")
-        print(f"{title} ({len(self.result)} items)")
-        print(f"{'='*60}")
+        logger.info(f"\n{'='*60}")
+        logger.info(f"{title} ({len(self.result)} items)")
+        logger.info(f"{'='*60}")
 
         if not self.item_validations:
-            print(f"\n{self.validation.icon()} Overall: {self.validation.status.upper()}")
-            print(f"   {self.validation.explanation}")
-            print(f"{'='*60}\n")
+            logger.info(f"\n{self.validation.icon()} Overall: {self.validation.status.upper()}")
+            logger.info(f"   {self.validation.explanation}")
+            logger.info(f"{'='*60}\n")
             return
 
         # Print per-item validation details
@@ -255,7 +258,7 @@ class ValidatedList(Validated[List[T]]):
 
             # Visual separator between items
             if i > 1:
-                print(f"\n{'-' * 60}")
+                logger.info(f"\n{'-' * 60}")
 
             # Try to get item name/title (works with objects that have .topic, .name, etc.)
             item_name = None
@@ -265,33 +268,33 @@ class ValidatedList(Validated[List[T]]):
                     break
 
             if item_name:
-                print(f"\n{i}. {item_name}")
+                logger.info(f"\n{i}. {item_name}")
             else:
-                print(f"\n{i}. {item_label} {i}")
+                logger.info(f"\n{i}. {item_label} {i}")
 
             # Show item content (explanation and quotes if available)
             if hasattr(item, 'explanation'):
-                print(f"\n   {item.explanation}\n")
+                logger.info(f"\n   {item.explanation}\n")
 
             if hasattr(item, 'quotes'):
-                print(f"   Quotes ({len(item.quotes)}):")
+                logger.info(f"   Quotes ({len(item.quotes)}):")
                 for quote in item.quotes[:3]:  # Show first 3 quotes
-                    print(f"      [{quote.index}] {quote.timestamp} {quote.speaker}:")
-                    print(f"      {quote.quote}\n")
+                    logger.info(f"      [{quote.index}] {quote.timestamp} {quote.speaker}:")
+                    logger.info(f"      {quote.quote}\n")
                 if len(item.quotes) > 3:
-                    print(f"      ... and {len(item.quotes) - 3} more\n")
+                    logger.info(f"      ... and {len(item.quotes) - 3} more\n")
 
             # Show validation status and checks
-            print(f"   {status_emoji} Validation: {validation.status.upper()}")
+            logger.info(f"   {status_emoji} Validation: {validation.status.upper()}")
 
             # Show validation checks (only non-informational)
             for check in validation.checks:
                 if not check.informational:
                     check_emoji = {"ok": "✅", "check": "⚠️", "iffy": "❌"}[check.status]
-                    print(f"      └─ {check_emoji} {check.method}:")
+                    logger.info(f"      └─ {check_emoji} {check.method}:")
                     # Wrap long explanations with proper indentation
                     wrapped = textwrap.fill(check.explanation, width=70, initial_indent="         ", subsequent_indent="         ")
-                    print(wrapped)
+                    logger.info(wrapped)
 
             # Show informational assessments
             for check in validation.checks:
@@ -299,14 +302,14 @@ class ValidatedList(Validated[List[T]]):
                     strengths = check.metadata.get("strengths", "")
                     weaknesses = check.metadata.get("weaknesses", "")
                     if strengths or weaknesses:
-                        print(f"      ℹ️  LLM Assessment:")
+                        logger.info(f"      ℹ️  LLM Assessment:")
                         if strengths:
                             wrapped_strengths = textwrap.fill(strengths, width=70, initial_indent="         + ", subsequent_indent="           ")
-                            print(wrapped_strengths)
+                            logger.info(wrapped_strengths)
                         if weaknesses:
                             wrapped_weaknesses = textwrap.fill(weaknesses, width=70, initial_indent="         - ", subsequent_indent="           ")
-                            print(wrapped_weaknesses)
+                            logger.info(wrapped_weaknesses)
 
-        print(f"\n{'='*60}")
-        print(f"Overall: {self.validation.status.upper()} - {self.validation.explanation}")
-        print(f"{'='*60}\n")
+        logger.info(f"\n{'='*60}")
+        logger.info(f"Overall: {self.validation.status.upper()} - {self.validation.explanation}")
+        logger.info(f"{'='*60}\n")

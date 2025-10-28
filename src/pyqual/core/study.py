@@ -119,7 +119,7 @@ class Study:
         m : Optional[MelleaSession]
             If provided, passed through to Interview.identify_interviewee().
         """
-        logger.info(f"Identify interviewees for study {self.id}")
+        logger.debug(f"Identify interviewees for study {self.id}")
         results = {}
         for doc in self.documents:
             predicted = doc.identify_interviewee(m=m)
@@ -153,13 +153,13 @@ class Study:
         dict
             Mapping of interview.id -> ValidatedList[Topic]
         """
-        logger.info(f"Suggest topics for study {self.id}")
+        logger.debug(f"Suggest topics for study {self.id}")
         context = interview_context or self.study_context
-        logger.info(f"Extracting topics from {len(self.documents)} interviews with context: {context}")
+        logger.debug(f"Extracting topics from {len(self.documents)} interviews with context: {context}")
 
         results = {}
         for idx, doc in enumerate(self.documents, start=1):
-            logger.info(f"Processing interview {idx}/{len(self.documents)}: {doc.id}")
+            logger.debug(f"Processing interview {idx}/{len(self.documents)}: {doc.id}")
             topics_result = doc.suggest_topics_top_down(
                 m,
                 n=n,
@@ -179,7 +179,7 @@ class Study:
         dict
             Mapping of interview.id -> {original_speaker: anonymized_speaker}
         """
-        logger.info(f"Anonymize speakers - Study ID: {self.id}")
+        logger.debug(f"Anonymize speakers - Study ID: {self.id}")
         all_mappings = {}
 
         for doc in self.documents:
@@ -254,7 +254,7 @@ class Study:
         ValueError
             If n < 1, max_quotes_per_topic < 1, or max_quote_length < 50
         """
-        logger.info(f"Starting suggest_themes for study {self.id} (n={n}, context={study_context})")
+        logger.debug(f"Starting suggest_themes for study {self.id} (n={n}, context={study_context})")
 
         # Precondition 1: Study must have at least 2 interviews
         if len(self.documents) < 2:
@@ -276,7 +276,7 @@ class Study:
 
         if topic_lists:
             # User-provided topic lists
-            logger.info(f"Using {len(topic_lists)} user-provided TopicLists")
+            logger.debug(f"Using {len(topic_lists)} user-provided TopicLists")
             all_topic_lists = topic_lists
 
             # Validate that we have at least 2 topic lists
@@ -287,7 +287,7 @@ class Study:
                 )
         else:
             # Use cached topics from interviews
-            logger.info(f"Collecting topics from {len(self.documents)} interviews")
+            logger.debug(f"Collecting topics from {len(self.documents)} interviews")
             for interview in self.documents:
                 if interview.topics_top_down is None:
                     raise ValueError(
@@ -295,7 +295,7 @@ class Study:
                         "Run suggest_topics_top_down() first or provide topic_lists parameter."
                     )
                 all_topic_lists.append(interview.topics_top_down)
-                logger.info(f"  → Collected {len(interview.topics_top_down.topics)} topics from {interview.id}")
+                logger.debug(f"  → Collected {len(interview.topics_top_down.topics)} topics from {interview.id}")
 
         # Precondition 3: Check for empty topic lists and warn
         empty_topic_lists = [tl for tl in all_topic_lists if not tl.topics]
@@ -356,7 +356,7 @@ class Study:
 
         # Estimate tokens (rough heuristic: 1 token ≈ 4 characters)
         estimated_tokens = len(topics_text) // 4
-        logger.info(f"Topics summary: ~{estimated_tokens} tokens (estimated)")
+        logger.debug(f"Topics summary: ~{estimated_tokens} tokens (estimated)")
 
         # Warn if approaching common model limits
         if estimated_tokens > 8000:
@@ -410,7 +410,7 @@ class Study:
         4. The specific topics (with their quotes) that support this theme
         """
 
-        logger.info(f"Calling Mellea for theme extraction (n={'unlimited' if n is None else n})...")
+        logger.debug(f"Calling Mellea for theme extraction (n={'unlimited' if n is None else n})...")
 
         requirements = [
             f"Each theme should be specific to the context of the overall study: {context_str}",
@@ -439,11 +439,11 @@ class Study:
             )
 
             elapsed_time = time.time() - start_time
-            logger.info(f"Mellea theme extraction completed in {elapsed_time:.2f} seconds")
+            logger.debug(f"Mellea theme extraction completed in {elapsed_time:.2f} seconds")
 
             # Parse response
             theme_list = ThemeList.model_validate_json(response._underlying_value)
-            logger.info(f"Successfully parsed {len(theme_list.themes)} themes from LLM response")
+            logger.debug(f"Successfully parsed {len(theme_list.themes)} themes from LLM response")
 
             # Populate metadata
             theme_list.study_id = self.id
@@ -451,7 +451,7 @@ class Study:
 
             # Cache the ThemeList
             self.themes_top_down = theme_list
-            logger.info(f"Cached ThemeList in study.themes_top_down")
+            logger.debug(f"Cached ThemeList in study.themes_top_down")
 
             # Create validation result
             # For now, simple validation - could be enhanced with quote checking, etc.
@@ -461,7 +461,7 @@ class Study:
                 explanation=f"Generated {len(theme_list.themes)} themes across {len(all_topic_lists)} interviews"
             )
 
-            logger.info(f"Theme generation completed successfully")
+            logger.debug(f"Theme generation completed successfully")
 
             return Validated(result=theme_list, validation=validation)
 

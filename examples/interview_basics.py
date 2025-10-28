@@ -1,4 +1,5 @@
 from pathlib import Path
+import sys
 from pyqual.core.interview import Interview
 from mellea import MelleaSession
 from mellea.backends.litellm import LiteLLMBackend
@@ -9,7 +10,7 @@ import logging
 # Configure logging
 logging.basicConfig(
     level=logging.WARNING,  # Root: suppress all libraries by default
-    format='%(levelname)s - %(name)s - %(message)s'
+    format='%(message)s'
 )
 
 # Enable INFO logging only for pyqual

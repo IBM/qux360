@@ -118,7 +118,7 @@ class Interview:
         for candidate in candidates:
             try:
                 nlp = spacy.load(candidate)
-                logger.info(f"Using spaCy model: {candidate} - Interview ID: {self.id}")
+                logger.debug(f"Using spaCy model: {candidate} - Interview ID: {self.id}")
                 return nlp
             except OSError:
                 logger.error(f"spaCy model '{candidate}' not found.")
@@ -194,7 +194,7 @@ class Interview:
         logger.debug(f"View transcript (pretty-print) - Interview ID: {self.id} | Speaker: {speaker} | Rows: {rows}")
         df = self.transcript
         if df.empty:
-            print("Transcript is empty.")
+            logger.info("Transcript is empty.")
             return
 
         if speaker:
@@ -204,7 +204,7 @@ class Interview:
             ts = str(row["timestamp"])
             sp = str(row["speaker"])
             st = str(row["statement"])[:width]
-            print(f"{ts:>8} | {sp:<20} | {st}")
+            logger.info(f"{ts:>8} | {sp:<20} | {st}")
 
     def get_speakers(self) -> list[str]:
         """Return a list of unique speakers in the working transcript."""
@@ -260,7 +260,7 @@ class Interview:
             )
 
         # Check 1: Heuristic (word count)
-        logger.info(f"Heuristic validation - Interview ID: {self.id}")
+        logger.debug(f"Heuristic validation - Interview ID: {self.id}")
         if 'speaker' not in self.transcript.columns or 'statement' not in self.transcript.columns:
             raise ValueError("Transcript is missing 'speaker' or 'statement' column")
         
@@ -290,7 +290,7 @@ class Interview:
         checks = [heuristic_check]
 
         # Check 2: Optional LLM prediction
-        logger.info(f"Optional LLM prediction - Interview ID: {self.id}")
+        logger.debug(f"Optional LLM prediction - Interview ID: {self.id}")
         if 'timestamp' not in self.transcript.columns or 'speaker' not in self.transcript.columns or 'statement' not in self.transcript.columns:
             raise ValueError("Transcript is missing 'timestamp' or 'speaker' or 'statement' column. If your transcript names them differently, you can set up the right headers configuration.")
 
@@ -438,7 +438,7 @@ class Interview:
         dict
             Mapping of original names -> generic anonymized labels.
         """
-        logger.info(f"Anonymize speakers - Interview ID: {self.id}")
+        logger.debug(f"Anonymize speakers - Interview ID: {self.id}")
         speakers = self.get_speakers()
         if not speakers:
             return {}
@@ -459,9 +459,9 @@ class Interview:
         return mapping
 
     def anonymize_statements(self, replacements: dict):
-        logger.info(f"Anonymize statements - Interview ID: {self.id}")
+        logger.debug(f"Anonymize statements - Interview ID: {self.id}")
         if not replacements:
-            print("No replacements provided.")
+            logger.info("No replacements provided.")
             return
 
         def replace_text(text: str) -> str:
@@ -564,7 +564,7 @@ class Interview:
             Returns None if the quote is valid (exact or near match),
             otherwise returns a descriptive error message.
         """
-        logger.info(f"Validate quote - Interview ID: {self.id} | Quote text: {quote.text}")
+        logger.debug(f"Validate quote - Interview ID: {self.id} | Quote text: {quote.text}")
         df = self.transcript
 
         def similar(a: str, b: str, threshold: float = 0.8) -> bool:
@@ -613,7 +613,7 @@ class Interview:
         ValidatedList[Topic]
             List of topics with per-topic and overall validation results.
         """
-        logger.info(f"Starting suggest_topics_top_down for interview {self.id} (n={n}, context={interview_context})")
+        logger.debug(f"Starting suggest_topics_top_down for interview {self.id} (n={n}, context={interview_context})")
         df = self.transcript
 
         # Edge case 1: Empty transcript
@@ -659,7 +659,7 @@ class Interview:
         {{text}} 
         """
 
-        logger.info("Calling Mellea for initial topic extraction...")
+        logger.debug("Calling Mellea for initial topic extraction...")
 
         requirements=[
                 f"Each topic should be specific to the context of the overall interview: {interview_context}",
@@ -667,7 +667,7 @@ class Interview:
                 "Each topic must include a detailed explanation, why it was chosen. More than 1 sentence." if explain else "Explanations must be omitted. Use 'None'.",
                 "Each quote must include row number (index), timestamp, and speaker."]
 
-        logger.info(f"Requirements passed in: {requirements}")
+        logger.debug(f"Requirements passed in: {requirements}")
 
         start_time = time.time()
         response = m.instruct(
@@ -683,32 +683,32 @@ class Interview:
             return_sampling_results=True,
         )
         elapsed_time = time.time() - start_time
-        logger.info(f"Mellea topic extraction completed in {elapsed_time:.2f} seconds")
+        logger.debug(f"Mellea topic extraction completed in {elapsed_time:.2f} seconds")
 
         # Print raw response at DEBUG level
         if logger.isEnabledFor(logging.DEBUG):
-            print(("*** Response"))
-            print(response)
+            logger.info(("*** Response"))
+            logger.info(response)
 
         # Print validation results at INFO level
         if logger.isEnabledFor(logging.INFO):
-            print(("**** Validations"))
+            logger.info(("**** Validations"))
             for i, validation_group in enumerate(response.sample_validations, start=1):
-                print(f"\n--- Validation Group {i} ---")
+                logger.info(f"\n--- Validation Group {i} ---")
                 for req, res in validation_group:
-                    print(f"Requirement: {req.description or '(no description)'}")
-                    print(f".  Result: {res._result}")
+                    logger.info(f"Requirement: {req.description or '(no description)'}")
+                    logger.info(f".  Result: {res._result}")
                     if res.score is not None:
-                        print(f"  🔢 Score: {res.score:.2f}")
+                        logger.info(f"  🔢 Score: {res.score:.2f}")
                     if res.reason:
-                        print(f".  Reason: {res.reason}")
+                        logger.info(f".  Reason: {res.reason}")
                     if req.check_only:
-                        print(f"  ⚙️  (Check-only requirement)")
-                    print("-" * 40)
+                        logger.info(f"  ⚙️  (Check-only requirement)")
+                    logger.info("-" * 40)
 
         try:
             topics = TopicList.model_validate_json(response._underlying_value)
-            logger.info(f"Successfully parsed {len(topics.topics)} topics from LLM response")
+            logger.debug(f"Successfully parsed {len(topics.topics)} topics from LLM response")
 
             # Populate TopicList metadata
             topics.interview_id = self.id
@@ -716,10 +716,10 @@ class Interview:
 
             # NEW: Dual validation per topic
             topic_validations = []
-            logger.info("Starting per-topic validation...")
+            logger.debug("Starting per-topic validation...")
 
             for idx, topic in enumerate(topics.topics, start=1):
-                logger.info(f"Validating topic {idx}/{len(topics.topics)}: {topic.topic}")
+                logger.debug(f"Validating topic {idx}/{len(topics.topics)}: {topic.topic}")
                 # Validation Check 1: Quote validation
                 quote_errors = []
                 for quote in topic.quotes:
@@ -749,7 +749,7 @@ class Interview:
                     )
 
                 # Validation Check 2: LLM validation (NEW)
-                logger.info(f"  → Running LLM validation for topic: {topic.topic}")
+                logger.debug(f"  → Running LLM validation for topic: {topic.topic}")
                 # Ask the LLM to validate the topic quality/relevance
                 validation_prompt = """
                 You extracted the topic "{{topic_name}}" from an interview.
@@ -805,7 +805,7 @@ class Interview:
                 )
 
                 # Validation Check 3: Informational LLM assessment (strengths/weaknesses)
-                logger.info(f"  → Running LLM assessment for topic: {topic.topic}")
+                logger.debug(f"  → Running LLM assessment for topic: {topic.topic}")
                 # This check does NOT affect the validation status
                 assessment_prompt = """
                 You extracted the topic "{{topic_name}}" from an interview.
@@ -874,7 +874,7 @@ class Interview:
                 topic_validations.append(topic_validation)
 
             # Create overall validation from all topic validations
-            logger.info("Completed per-topic validation. Creating overall validation summary...")
+            logger.debug("Completed per-topic validation. Creating overall validation summary...")
             if topic_validations:
                 overall_validation = IffyIndex.from_checks(
                     topic_validations,
@@ -897,8 +897,8 @@ class Interview:
             # Cache the TopicList and validation results
             self.topics_top_down = topics
             self.topics_top_down_validation = overall_validation
-            logger.info(f"Cached TopicList in interview.topics_top_down")
-            logger.info(f"Cached validation (status={overall_validation.status}) in interview.topics_top_down_validation")
+            logger.debug(f"Cached TopicList in interview.topics_top_down")
+            logger.debug(f"Cached validation (status={overall_validation.status}) in interview.topics_top_down_validation")
 
             # Print summary only when logger is set to DEBUG level
             if logger.isEnabledFor(logging.DEBUG):

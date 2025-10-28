@@ -119,7 +119,7 @@ def save_interview_state(interview: 'Interview', cache_path: Optional[Path] = No
     with open(cache_path, 'w') as f:
         json.dump(state, f, indent=2)
 
-    logger.info(f"Saved interview state to {cache_path}")
+    logger.debug(f"Saved interview state to {cache_path}")
     return cache_path
 
 
@@ -178,9 +178,9 @@ def load_interview_state(cache_path: Path, validate_source: bool = True) -> 'Int
     else:
         interview.topics_top_down_validation = None
 
-    logger.info(f"Loaded interview state from {cache_path}")
+    logger.debug(f"Loaded interview state from {cache_path}")
     if interview.topics_top_down_validation:
-        logger.info(f"  → Loaded validation: {interview.topics_top_down_validation.status}")
+        logger.debug(f"  → Loaded validation: {interview.topics_top_down_validation.status}")
     return interview
 
 
@@ -213,11 +213,11 @@ def try_load_or_parse(file: Path, cache_dir: Optional[Path] = None, **parse_kwar
 
     # Try loading from cache
     if _is_cache_valid(cache_path, file):
-        logger.info(f"Loading from cache: {file.name}")
+        logger.debug(f"Loading from cache: {file.name}")
         return load_interview_state(cache_path)
 
     # Cache miss or stale - parse from source
-    logger.info(f"Cache miss or stale. Parsing from source: {file.name}")
+    logger.debug(f"Cache miss or stale. Parsing from source: {file.name}")
     # IMPORTANT: Disable caching to avoid infinite recursion
     parse_kwargs['use_cache'] = False
     interview = Interview(file=file, **parse_kwargs)
@@ -269,7 +269,7 @@ def save_study_state(study: 'Study', cache_dir: Path) -> Path:
     with open(study_cache_path, 'w') as f:
         json.dump(study_state, f, indent=2)
 
-    logger.info(f"Saved study state to {cache_dir}")
+    logger.debug(f"Saved study state to {cache_dir}")
     return study_cache_path
 
 
@@ -315,5 +315,5 @@ def load_study_state(cache_dir: Path) -> 'Study':
     # Theme caching removed - themes should be regenerated each run
     study.themes_top_down = None
 
-    logger.info(f"Loaded study state from {cache_dir}")
+    logger.debug(f"Loaded study state from {cache_dir}")
     return study
