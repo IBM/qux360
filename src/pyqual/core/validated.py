@@ -337,7 +337,7 @@ class ValidatedList(Validated[List[T]]):
                             logger.info(f"           {quote_text}")
                         if len(topic.quotes) > 2:
                             logger.info(f"           ... and {len(topic.quotes) - 2} more")
-                logger.info()  # Extra line after topics
+                logger.info("")  # Extra line after topics
 
             # Show quotes (for Topic objects)
             elif hasattr(item, 'quotes'):
