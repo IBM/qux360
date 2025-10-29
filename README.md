@@ -30,13 +30,13 @@ Qux360 can be used in two ways:
 Once published, install with pip:  
 
 ```bash
-pip install pyqual
+pip install qux360
 ```
 
 Example:  
 
 ```python
-from pyqual.core.interview import Interview
+from qux360.core.interview import Interview
 
 i = Interview("my_transcript.docx")
 i.show()
@@ -49,8 +49,8 @@ i.show()
 #### Step 1. Clone the repo
 
 ```bash
-git clone git@github.ibm.com:AIExperience/pyqual.git
-cd pyqual
+git clone https://github.com/IBM/qux360.git
+cd qux360
 ```
 
 #### Step 2. Install dependencies with Poetry
@@ -119,7 +119,7 @@ python examples/interview_basics.py
 ## 🚀 Quickstart Example
 
 ```python
-from pyqual.core.interview import Interview
+from qux360.core.interview import Interview
 
 # Load a transcript (DOCX, XLSX, or CSV)
 i = Interview("examples/data/interview_A.docx")
@@ -138,7 +138,7 @@ i.to_xlsx("output_transcript.xlsx", include_enriched=False)
 ## 🤖 Quickstart: Anonymization & Interviewee Identification
 
 ```python
-from pyqual.core.interview import Interview
+from qux360.core.interview import Interview
 
 # Load a transcript
 i = Interview("examples/data/interview_A.xlsx")

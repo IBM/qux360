@@ -1,8 +1,8 @@
-# PyQual Caching System
+# Qux360 Caching System
 
 ## Overview
 
-PyQual includes a transparent caching system that dramatically speeds up development and testing by avoiding repeated expensive operations:
+Qux360 includes a transparent caching system that dramatically speeds up development and testing by avoiding repeated expensive operations:
 - ✅ File parsing (DOCX/XLSX/CSV)
 - ✅ LLM-based topic extraction **with full validation results**
 - ❌ Theme analysis (NOT cached - regenerated each run for flexibility)
@@ -13,7 +13,7 @@ PyQual includes a transparent caching system that dramatically speeds up develop
 - ✅ Stores both raw and transformed transcripts
 - ✅ Caches topic extraction results with complete validation details
 - ✅ Minimal code changes required
-- ✅ Cache files stored separately in `.pyqual_cache/` directories
+- ✅ Cache files stored separately in `.qux360_cache/` directories
 
 ## How It Works
 
@@ -27,9 +27,9 @@ interview = Interview("interview_A.docx")
 interview = Interview("interview_A.docx")  # Fast!
 ```
 
-The cache is stored in `.pyqual_cache/interview_A_state.json` next to the source file.
+The cache is stored in `.qux360_cache/interview_A_state.json` next to the source file.
 
-**Cache invalidation:** If you modify `interview_A.docx`, the cache automatically becomes stale and PyQual will re-parse the file.
+**Cache invalidation:** If you modify `interview_A.docx`, the cache automatically becomes stale and Qux360 will re-parse the file.
 
 ### What Gets Cached
 
@@ -59,7 +59,7 @@ The cache is stored in `.pyqual_cache/interview_A_state.json` next to the source
 ### 1. Single Interview Caching
 
 ```python
-from pyqual.core.interview import Interview
+from qux360.core.interview import Interview
 
 # Automatic caching (default)
 interview = Interview("data/interview.docx")
@@ -75,13 +75,13 @@ interview.suggest_topics_top_down(m, n=5)
 interview.save_state()  # Saves to default location
 
 # Load from specific cache file
-interview = Interview.load_from_cache(Path(".pyqual_cache/interview_state.json"))
+interview = Interview.load_from_cache(Path(".qux360_cache/interview_state.json"))
 ```
 
 ### 2. Study-Level Caching
 
 ```python
-from pyqual.core.study import Study
+from qux360.core.study import Study
 
 # Automatic caching for all interviews (default)
 study = Study(
@@ -154,7 +154,7 @@ for interview in study.documents:
 
 ## Cache File Structure
 
-### Interview Cache (`.pyqual_cache/interview_A_state.json`)
+### Interview Cache (`.qux360_cache/interview_A_state.json`)
 
 ```json
 {
@@ -207,7 +207,7 @@ for interview in study.documents:
 
 ## Validation Caching
 
-A powerful feature of PyQual's caching system is that it preserves **complete validation results** from topic extraction.
+A powerful feature of Qux360's caching system is that it preserves **complete validation results** from topic extraction.
 
 ### What Validation Data is Cached
 
@@ -277,7 +277,7 @@ Caches automatically become stale when:
 - Cache file is deleted manually
 - Cache file is corrupted
 
-When stale, PyQual automatically re-parses the source file and updates the cache.
+When stale, Qux360 automatically re-parses the source file and updates the cache.
 
 ## Best Practices
 
@@ -321,8 +321,8 @@ assert len(themes.result.themes) > 0
 
 The `.gitignore` is configured to exclude cache directories by default:
 ```gitignore
-# PyQual cache directories
-.pyqual_cache/
+# Qux360 cache directories
+.qux360_cache/
 .study_cache/
 ```
 
@@ -363,13 +363,13 @@ study = Study(files=[...], use_cache=False)
 
 ### Clear all caches
 ```bash
-find . -type d -name ".pyqual_cache" -exec rm -rf {} +
+find . -type d -name ".qux360_cache" -exec rm -rf {} +
 find . -type d -name ".study_cache" -exec rm -rf {} +
 ```
 
 ### Check cache size
 ```bash
-du -sh examples/data/.pyqual_cache/
+du -sh examples/data/.qux360_cache/
 du -sh examples/data/.study_cache/
 ```
 
@@ -378,7 +378,7 @@ du -sh examples/data/.study_cache/
 import json
 from pathlib import Path
 
-cache_file = Path(".pyqual_cache/interview_A_state.json")
+cache_file = Path(".qux360_cache/interview_A_state.json")
 state = json.loads(cache_file.read_text())
 
 print(f"Cached topics: {len(state['topics_top_down']['topics'])}")
@@ -388,9 +388,9 @@ print(f"Source hash: {state['source_file_hash']}")
 ## Troubleshooting
 
 ### Cache not loading
-- Check if cache file exists: `ls .pyqual_cache/`
+- Check if cache file exists: `ls .qux360_cache/`
 - Check if source file hash changed (file was modified)
-- Enable debug logging: `logging.getLogger("pyqual").setLevel(logging.DEBUG)`
+- Enable debug logging: `logging.getLogger("qux360").setLevel(logging.DEBUG)`
 
 ### Cache taking too much space
 - Cache files are JSON (compressed would be smaller)
@@ -398,12 +398,12 @@ print(f"Source hash: {state['source_file_hash']}")
 - Consider clearing old caches periodically
 
 ### Stale cache not refreshing
-- Delete cache manually: `rm -rf .pyqual_cache/`
+- Delete cache manually: `rm -rf .qux360_cache/`
 - Verify source file hash: cache invalidation is automatic based on SHA256
 
 ## Implementation Details
 
-The caching system is implemented in [src/pyqual/core/cache.py](src/pyqual/core/cache.py) as a separate module to keep `Interview` and `Study` classes focused.
+The caching system is implemented in [src/qux360/core/cache.py](src/qux360/core/cache.py) as a separate module to keep `Interview` and `Study` classes focused.
 
 Key functions:
 - `save_interview_state()` - Serialize interview to JSON

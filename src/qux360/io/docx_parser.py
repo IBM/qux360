@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 def parse_docx(path: str | Path) -> pd.DataFrame:
     """
-    Parse a DOCX transcript into the PyQual schema.
+    Parse a DOCX transcript into the Qux360 schema.
 
     Parameters
     ----------

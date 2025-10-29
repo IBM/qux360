@@ -12,9 +12,9 @@ from datetime import datetime
 
 from mellea import MelleaSession
 from mellea.stdlib.sampling import RejectionSamplingStrategy
-from pyqual.core.iffy import IffyIndex
-from pyqual.core.validated import Validated, ValidatedList
-from pyqual.core.utils import print_mellea_validations
+from qux360.core.iffy import IffyIndex
+from qux360.core.validated import Validated, ValidatedList
+from qux360.core.utils import print_mellea_validations
 import copy
 
 from .models import TopicList, Quote
@@ -55,7 +55,7 @@ class Interview:
         use_cache : bool, default=True
             If True, attempts to load from cache before parsing
         cache_dir : Path, optional
-            Custom cache directory. Defaults to .pyqual_cache/ next to source file
+            Custom cache directory. Defaults to .qux360_cache/ next to source file
         """
         logger.debug(f"\nInit Interview - File Path: {file} | Usign cache {use_cache}")
         # Try smart loading with cache if file provided
@@ -950,7 +950,7 @@ class Interview:
         Parameters
         ----------
         cache_path : Path, optional
-            Custom cache file path. If None, auto-generates in .pyqual_cache/
+            Custom cache file path. If None, auto-generates in .qux360_cache/
 
         Returns
         -------

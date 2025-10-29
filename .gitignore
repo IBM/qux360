@@ -10,6 +10,6 @@ examples/data/*_exported.xlsx
 .vscode/
 CLAUDE.md
 
-# PyQual cache directories
-.pyqual_cache/
+# Qux360 cache directories
+.qux360_cache/
 .study_cache/

@@ -1,16 +1,15 @@
 """
-Tests for PyQual caching functionality.
+Tests for Qux360 caching functionality.
 """
 
 import pytest
-import tempfile
 import json
 from pathlib import Path
 import pandas as pd
 
-from pyqual.core.interview import Interview
-from pyqual.core.study import Study
-from pyqual.core.cache import (
+from qux360.core.interview import Interview
+from qux360.core.study import Study
+from qux360.core.cache import (
     save_interview_state,
     load_interview_state,
     _compute_file_hash,
@@ -206,8 +205,8 @@ class TestAutomaticCaching:
 
     def test_validation_results_are_cached(self, tmp_path):
         """Test that topic validation results are cached and restored."""
-        from pyqual.core.models import TopicList, Topic, Quote
-        from pyqual.core.iffy import IffyIndex
+        from qux360.core.models import TopicList, Topic, Quote
+        from qux360.core.iffy import IffyIndex
 
         # Create an interview
         interview = Interview()
@@ -247,7 +246,7 @@ class TestAutomaticCaching:
 
 def load_study_state(cache_dir):
     """Helper to load study state for tests."""
-    from pyqual.core.cache import load_study_state as _load
+    from qux360.core.cache import load_study_state as _load
     return _load(Path(cache_dir))
 
 

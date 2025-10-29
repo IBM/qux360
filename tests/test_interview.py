@@ -1,4 +1,4 @@
-from pyqual.core.interview import Interview
+from qux360.core.interview import Interview
 
 def test_empty_interview():
     print("hello")

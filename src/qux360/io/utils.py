@@ -9,7 +9,7 @@ class SchemaValidationError(Exception):
 
 def ensure_schema(df: pd.DataFrame, source: str) -> pd.DataFrame:
     """
-    Normalize DataFrame to PyQual schema.
+    Normalize DataFrame to Qux360 schema.
     - DOCX/CSV/XLSX: require timestamp, speaker, statement (case-insensitive).
     - VTT: allow missing speaker (set to 'Unknown').
     """

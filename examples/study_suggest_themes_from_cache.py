@@ -17,7 +17,7 @@ SUBSEQUENT RUNS (cache exists):
 """
 
 from pathlib import Path
-from pyqual.core.study import Study
+from qux360.core.study import Study
 from mellea import MelleaSession
 from mellea.backends.litellm import LiteLLMBackend
 from dotenv import load_dotenv
@@ -29,7 +29,7 @@ logging.basicConfig(
     level=logging.WARNING,
     format='%(message)s'
 )
-logging.getLogger("pyqual").setLevel(logging.INFO)
+logging.getLogger("qux360").setLevel(logging.INFO)
 
 load_dotenv()
 
@@ -37,7 +37,9 @@ ROOT_DIR = os.path.dirname(Path('__file__').absolute())
 
 #m = MelleaSession(backend=WatsonxAIBackend(model_id=os.getenv("MODEL_ID_WATSONX")))
 m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID")))
-#logging.getLogger('fancy_logger').setLevel(logging.WARNING)
+
+# Disable mellea's progress bar
+logging.getLogger('fancy_logger').setLevel(logging.WARNING)
 
 data_dir = os.path.join(ROOT_DIR, "examples/data")
 
@@ -52,7 +54,7 @@ interview_files = [
 ]
 
 # Load study with automatic caching (default behavior)
-# - First run: parses files, creates .pyqual_cache/ for each interview
+# - First run: parses files, creates .qux360_cache/ for each interview
 # - Subsequent runs: loads from cache
 study = Study(
     interview_files,
@@ -95,7 +97,7 @@ if needs_topic_extraction:
     # Save interviews with topics to cache
     print("\n→ Step 3: Saving to cache for next run...")
     for interview in study.documents:
-        interview.save_state()  # Saves to .pyqual_cache/ next to source file
+        interview.save_state()  # Saves to .qux360_cache/ next to source file
 
     print("\n✅ Topics extracted and cached!")
     print("   Next time you run this script, it will load instantly from cache.\n")
@@ -145,7 +147,7 @@ print("=" * 60)
 print("\n📝 Summary:")
 print(f"  • {len(study)} interviews processed")
 if needs_topic_extraction:
-    print(f"  • Topics extracted and cached to .pyqual_cache/")
+    print(f"  • Topics extracted and cached to .qux360_cache/")
 else:
     print(f"  • Topics loaded from cache")
 print(f"  • {len(themes_result.result) if themes_result and themes_result.result else 0} themes identified")
