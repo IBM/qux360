@@ -2,7 +2,7 @@ import logging
 
 # Configure logging defaults for the library
 # Libraries should be quiet by default - users control verbosity in their code
-logging.getLogger('pyqual').setLevel(logging.WARNING)
+logging.getLogger('qux360').setLevel(logging.WARNING)
 
 # Suppress Mellea's FancyLogger (our LLM orchestration dependency)
 # Mellea is extremely verbose by default (INFO level). Since it's an internal

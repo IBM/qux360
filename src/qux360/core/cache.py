@@ -40,7 +40,7 @@ def _get_cache_path(source_file: Path, cache_dir: Path = None) -> Path:
     """Generate cache file path for a given source file."""
     logger.debug(f"Get cache path - Source file: {source_file}")
     if cache_dir is None:
-        cache_dir = source_file.parent / ".pyqual_cache"
+        cache_dir = source_file.parent / ".qux360_cache"
 
     cache_dir.mkdir(exist_ok=True)
     cache_file = cache_dir / f"{source_file.stem}_state.json"
@@ -75,7 +75,7 @@ def save_interview_state(interview: 'Interview', cache_path: Optional[Path] = No
     interview : Interview
         The interview instance to save
     cache_path : Path, optional
-        Custom cache file path. If None, auto-generates in .pyqual_cache/
+        Custom cache file path. If None, auto-generates in .qux360_cache/
 
     Returns
     -------
@@ -195,7 +195,7 @@ def try_load_or_parse(file: Path, cache_dir: Optional[Path] = None, **parse_kwar
     file : Path
         Path to source interview file (DOCX/XLSX/CSV)
     cache_dir : Path, optional
-        Custom cache directory. Defaults to .pyqual_cache/ next to source file
+        Custom cache directory. Defaults to .qux360_cache/ next to source file
     **parse_kwargs
         Additional arguments passed to Interview constructor (headers, has_headers)
 

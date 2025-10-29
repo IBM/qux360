@@ -1,9 +1,11 @@
 [project]
-name = "pyqual"
+name = "qux360"
 version = "0.1.0"
 description = "AI-assisted qualitative analysis library for interview data with privacy-preserving features"
 authors = [
-    {name = "Werner Geyer", email = "werner.geyer@us.ibm.com"}
+    {name = "Werner Geyer", email = "werner.geyer@us.ibm.com"},
+    {name = "Siya Kunde", email = "skunde@ibm.com"},
+    {name = "Mariela Lanza", email = "mlanza@ar.ibm.com"}
 ]
 readme = "README.md"
 license = "Apache-2.0"
@@ -24,12 +26,13 @@ dependencies = [
 
 [tool.poetry]
 packages = [
-    { include = "pyqual", from = "src" }
+    { include = "qux360", from = "src" }
 ]
 
 [dependency-groups]
 dev = [
-    "pytest>=8.4.2,<9.0.0"
+    "pytest>=8.4.2,<9.0.0",
+    "ipykernel (>=7.1.0,<8.0.0)"
 ]
 
 [build-system]

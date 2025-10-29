@@ -1,5 +1,5 @@
 """
-Core utility functions for PyQual.
+Core utility functions for Qux360.
 """
 
 import logging

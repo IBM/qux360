@@ -1,5 +1,5 @@
 from pathlib import Path
-from pyqual.core.interview import Interview
+from qux360.core.interview import Interview
 from mellea import MelleaSession
 #from mellea.backends.watsonx import WatsonxAIBackend
 from mellea.backends.litellm import LiteLLMBackend
@@ -14,8 +14,8 @@ logging.basicConfig(
     format='%(message)s'
 )
 
-# Enable INFO logging only for pyqual
-logging.getLogger("pyqual").setLevel(logging.INFO)
+# Enable INFO logging only for qux360
+logging.getLogger("qux360").setLevel(logging.INFO)
 
 load_dotenv()
 
