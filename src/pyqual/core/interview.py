@@ -565,7 +565,7 @@ class Interview:
             Returns None if the quote is valid (exact or near match),
             otherwise returns a descriptive error message.
         """
-        logger.debug(f"Validate quote - Interview ID: {self.id} | Quote text: {quote.text}")
+        logger.debug(f"Validate quote - Interview ID: {self.id} | Quote text: {quote.quote}")
         df = self.transcript
 
         def similar(a: str, b: str, threshold: float = 0.8) -> bool:
