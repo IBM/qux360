@@ -18,16 +18,16 @@ logging.basicConfig(
 logging.getLogger("pyqual").setLevel(logging.INFO)
 
 load_dotenv()
+
+ROOT_DIR = os.path.dirname(Path('__file__').absolute())
+
 #m = MelleaSession(backend=WatsonxAIBackend(model_id=os.getenv("MODEL_ID_WATSONX")))
 m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID")))
 
 # Suppress Mellea's FancyLogger (MelleaSession resets it to DEBUG, so we set it here)
 logging.getLogger('fancy_logger').setLevel(logging.WARNING)
-data_dir = Path(__file__).parent / "data"
-file = data_dir / "interview_A.csv"
-
-
-
+data_dir = os.path.join(ROOT_DIR, "examples/data")
+file = os.path.join(data_dir, "interview_A.csv")
 
 # STEP 1: Load interview
 print("=" * 60)
@@ -35,7 +35,7 @@ print("STEP 1: Loading interview")
 print("=" * 60)
 
 participant_id = "P1"
-config_file = Path(__file__).parent / "config.json"
+config_file = os.path.join(ROOT_DIR, "examples/config.json")
 
 # [OPTION A] create an instance without headers config (has headers by default)
 
