@@ -1,6 +1,6 @@
 [project]
 name = "qux360"
-version = "0.1.0"
+version = "0.0.1"
 description = "AI-assisted qualitative analysis library for interview data with privacy-preserving features"
 authors = [
     {name = "Werner Geyer", email = "werner.geyer@us.ibm.com"},
