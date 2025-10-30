@@ -3,7 +3,7 @@ from typing import TypeVar, Generic, List
 import textwrap
 import logging
 
-from .iffy import IffyIndex
+from .iffy import IffyIndex, STATUS_EMOJIS
 
 
 T = TypeVar('T')
@@ -259,7 +259,7 @@ class ValidatedList(Validated[List[T]]):
         # Condensed mode: Show only first item + summary
         if condensed and len(self.result) > 0:
             item, validation = list(self.items_with_validations())[0]
-            status_emoji = {"ok": "✅", "check": "⚠️", "iffy": "❌"}[validation.status]
+            status_emoji = STATUS_EMOJIS[validation.status]
 
             # Get item name/title
             item_name = None
@@ -290,7 +290,7 @@ class ValidatedList(Validated[List[T]]):
 
         # Full mode: Print per-item validation details
         for i, (item, validation) in enumerate(self.items_with_validations(), 1):
-            status_emoji = {"ok": "✅", "check": "⚠️", "iffy": "❌"}[validation.status]
+            status_emoji = STATUS_EMOJIS[validation.status]
 
             # Visual separator between items
             if i > 1:
@@ -354,7 +354,7 @@ class ValidatedList(Validated[List[T]]):
             # Show validation checks (only non-informational)
             for check in validation.checks:
                 if not check.informational:
-                    check_emoji = {"ok": "✅", "check": "⚠️", "iffy": "❌"}[check.status]
+                    check_emoji = STATUS_EMOJIS[check.status]
                     print(f"      └─ {check_emoji} {check.method}:")
                     # Wrap long explanations with proper indentation
                     wrapped = textwrap.fill(check.explanation, width=70, initial_indent="         ", subsequent_indent="         ")
@@ -375,6 +375,6 @@ class ValidatedList(Validated[List[T]]):
                             print(wrapped_weaknesses)
 
         print(f"\n{'='*60}")
-        status_emoji = {"ok": "✅", "check": "⚠️", "iffy": "❌"}[self.validation.status]
+        status_emoji = STATUS_EMOJIS[self.validation.status]
         print(f"Overall: {status_emoji} {self.validation.status.upper()} - {self.validation.explanation}")
         print(f"{'='*60}\n")

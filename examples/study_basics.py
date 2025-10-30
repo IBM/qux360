@@ -6,31 +6,26 @@ from dotenv import load_dotenv
 import os
 import logging
 
-# Configure logging
-logging.basicConfig(
-    level=logging.WARNING,  # Root: suppress all libraries by default
-    format='%(message)s'
-)
+# Configure logging: suppress all libraries by default
+logging.basicConfig(level=logging.WARNING, format='%(message)s')
 
 # Enable INFO logging only for qux360
 logging.getLogger("qux360").setLevel(logging.INFO)
 
 load_dotenv()
 
-ROOT_DIR = os.path.dirname(Path('__file__').absolute())
+ROOT_DIR = Path.cwd()
+data_dir = ROOT_DIR.joinpath("examples/data")
+file1 = data_dir.joinpath("interview_A.csv")
+file2 = data_dir.joinpath("interview_B.csv")
+file3 = data_dir.joinpath("interview_C.csv")
+config_file = ROOT_DIR.joinpath("examples/config.json")
 
 m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID")))
 
 # Suppress Mellea's FancyLogger (MelleaSession resets it to DEBUG, so we set it here)
 logging.getLogger('fancy_logger').setLevel(logging.WARNING)
 
-data_dir = os.path.join(ROOT_DIR, "examples/data")
-
-file1 = os.path.join(data_dir, "interview_A.csv")
-file2 = os.path.join(data_dir, "interview_B.csv")
-file3 = os.path.join(data_dir, "interview_C.csv")
-
-config_file = os.path.join(ROOT_DIR, "examples/config.json")
 
 # [OPTION A] create an instance without headers config (has headers by default)
 study = Study([file1, file2, file3])
