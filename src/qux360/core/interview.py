@@ -452,7 +452,7 @@ class Interview:
     def anonymize_statements(self, replacements: dict):
         logger.debug(f"Anonymize statements - Interview ID: {self.id}")
         if not replacements:
-            print("No replacements provided.")
+            logger.info("No replacements provided.")
             return
 
         def replace_text(text: str) -> str:
@@ -867,10 +867,9 @@ class Interview:
         elapsed_time = time.time() - start_time
         logger.debug(f"Mellea topic extraction completed in {elapsed_time:.2f} seconds")
 
-        # Print raw response at DEBUG level
-        if logger.isEnabledFor(logging.DEBUG):
-            print(("*** Response"))
-            print(response)
+        # Dump raw response at DEBUG level
+        logger.debug(("*** Response"))
+        logger.debug(response)
 
         # Print validation results
         print_mellea_validations(response, title="Topic Extraction Validations")
