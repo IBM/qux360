@@ -189,7 +189,7 @@ class Interview:
         logger.debug(f"View transcript (pretty-print) - Interview ID: {self.id} | Speaker: {speaker} | Rows: {rows}")
         df = self.transcript
         if df.empty:
-            logger.info("Transcript is empty.")
+            print("Transcript is empty.")
             return
 
         if speaker:
@@ -199,7 +199,7 @@ class Interview:
             ts = str(row["timestamp"])
             sp = str(row["speaker"])
             st = str(row["statement"])[:width]
-            logger.info(f"{ts:>8} | {sp:<20} | {st}")
+            print(f"{ts:>8} | {sp:<20} | {st}")
 
     def get_speakers(self) -> list[str]:
         """Return a list of unique speakers in the working transcript."""
@@ -867,10 +867,9 @@ class Interview:
         elapsed_time = time.time() - start_time
         logger.debug(f"Mellea topic extraction completed in {elapsed_time:.2f} seconds")
 
-        # Print raw response at DEBUG level
-        if logger.isEnabledFor(logging.DEBUG):
-            logger.info(("*** Response"))
-            logger.info(response)
+        # Dump raw response at DEBUG level
+        logger.debug(("*** Response"))
+        logger.debug(response)
 
         # Print validation results
         print_mellea_validations(response, title="Topic Extraction Validations")
