@@ -47,14 +47,16 @@ print("=" * 60)
 print("SMART LOADING: Interviews + Topics")
 print("=" * 60)
 
-# Check if cache exists on disk
-cache_dir = os.path.join(data_dir, ".qux360_cache")
-cache_exists = os.path.exists(cache_dir) and os.path.isdir(cache_dir)
+# Check if cache exists on disk and contains cache files
+cache_dir = data_dir / ".qux360_cache"
+cache_files = list(cache_dir.glob("*_state.json")) if cache_dir.exists() and cache_dir.is_dir() else []
+cache_exists = len(cache_files) > 0
 
 use_cache = True  # Default behavior
 
 if cache_exists:
     print(f"\n📁 Cache directory found: {cache_dir}")
+    print(f"   Contains {len(cache_files)} cached interview(s)")
     user_choice = input("🔄 Load interviews from cache? (y/n): ").strip().lower()
     use_cache = (user_choice == 'y')
     if use_cache:

@@ -4,7 +4,9 @@
 
 Validation is a **first-class concept** in Qux360 — every use of large language models is designed to be transparent, explainable, and open to scrutiny. The goal is to help developers build **trustworthy, interactive qualitative analysis experiences** while retaining flexibility in how they apply Qux360’s built-in quality assurance mechanisms.  
 
-Qux360 is built on **[Mellea](https://mellea.ai/)**, a **generative computing library** that provides robust and validated prompting techniques. The current Qux360 version supports **interview data with a single participant (interviewee)** only, with plans to expand this scope in future releases.  
+Qux360 is built on **[Mellea](https://mellea.ai/)**, a **generative computing library** that provides robust and validated prompting techniques. The current Qux360 version supports **interview data with a single participant (interviewee)** only, with plans to expand this scope in future releases. 
+
+The current version has been tested only with **meta-llama/llama-3-3-70b-instruct**. Other models may require prompt adjustments.
 
 **Key capabilities:**  
 - Import interview transcripts in **DOCX**, **XLSX**, or **CSV** formats  
@@ -73,32 +75,37 @@ This creates a `.venv` and installs all dependencies.
 #### Step 3. Activate the environment
 
 Activate `.venv` directly  
+
+**macOS/Linux**
 ```bash
-source .venv/bin/activate     # macOS/Linux
+source .venv/bin/activate     
 ```
 
+**Windows**
 ```bash
-.venv\Scripts\activate        # Windows
+.venv\Scripts\activate        
 ```
 
 
 #### Step 4. Install a spaCy model (**required for NER/anonymization**)
 
+**Best Quality**
 ```bash
-python -m spacy download en_core_web_trf   # best quality
+python -m spacy download en_core_web_trf   
 ```
 or
+
+**Smaller & Faster**
 ```bash
-python -m spacy download en_core_web_sm    # smaller/faster
+python -m spacy download en_core_web_sm
 ```
 
 #### Step 5. Set up `.env`
 
-Qux360 uses Mellea as a layer to connect to inference services. You will need to create a `.env` file in your project root folder, using keys required by Mellea (depending on what models and services you use Mellea with). For example, the following keys in the `.env` file would allow you to use Mellea with WatsonX directly (through a WatsonXBackend), or through LiteLLM. LiteLLM is supported in Mellea and allows you to use a variety of backends.
+Qux360 uses **[Mellea](https://mellea.ai/)** as a layer to connect to inference services. You will need to create a `.env` file in your project root folder, using keys required by Mellea (depending on what models and services you use Mellea with). For example, the following keys in the `.env` file would allow you to use Mellea with LiteLLM and WatsonX. LiteLLM is supported in Mellea and allows you to use most common backends. See [https://docs.mellea.ai/api-reference/core-library/backends/index](https://docs.mellea.ai/api-reference/core-library/backends/index) for details.
 
 ```bash
 MODEL_ID=watsonx/meta-llama/llama-3-3-70b-instruct
-MODEL_ID_WATSONX=meta-llama/llama-3-3-70b-instruct
 WATSONX_URL=[your URL]
 WATSONX_API_KEY=[your API key]
 WATSONX_PROJECT_ID=[your project ID]
