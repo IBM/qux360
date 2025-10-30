@@ -189,7 +189,7 @@ class Interview:
         logger.debug(f"View transcript (pretty-print) - Interview ID: {self.id} | Speaker: {speaker} | Rows: {rows}")
         df = self.transcript
         if df.empty:
-            logger.info("Transcript is empty.")
+            print("Transcript is empty.")
             return
 
         if speaker:
@@ -199,7 +199,7 @@ class Interview:
             ts = str(row["timestamp"])
             sp = str(row["speaker"])
             st = str(row["statement"])[:width]
-            logger.info(f"{ts:>8} | {sp:<20} | {st}")
+            print(f"{ts:>8} | {sp:<20} | {st}")
 
     def get_speakers(self) -> list[str]:
         """Return a list of unique speakers in the working transcript."""
@@ -452,7 +452,7 @@ class Interview:
     def anonymize_statements(self, replacements: dict):
         logger.debug(f"Anonymize statements - Interview ID: {self.id}")
         if not replacements:
-            logger.info("No replacements provided.")
+            print("No replacements provided.")
             return
 
         def replace_text(text: str) -> str:
@@ -869,8 +869,8 @@ class Interview:
 
         # Print raw response at DEBUG level
         if logger.isEnabledFor(logging.DEBUG):
-            logger.info(("*** Response"))
-            logger.info(response)
+            print(("*** Response"))
+            print(response)
 
         # Print validation results
         print_mellea_validations(response, title="Topic Extraction Validations")
