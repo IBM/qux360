@@ -2,6 +2,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Literal, List, Optional, Dict
 
+# Status emoji mapping for validation results
+STATUS_EMOJIS = {"ok": "✅", "check": "⚠️", "iffy": "❌"}
 
 @dataclass
 class IffyIndex:
@@ -188,11 +190,7 @@ class IffyIndex:
 
     def icon(self) -> str:
         """Get emoji icon representing the validation status."""
-        return {
-            "ok": "✅",
-            "check": "⚠️",
-            "iffy": "❌"
-        }[self.status]
+        return STATUS_EMOJIS[self.status]
 
     def to_dict(self) -> dict:
         """

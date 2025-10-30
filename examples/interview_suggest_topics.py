@@ -3,31 +3,29 @@ from qux360.core.interview import Interview
 from mellea import MelleaSession
 #from mellea.backends.watsonx import WatsonxAIBackend
 from mellea.backends.litellm import LiteLLMBackend
-from mellea import MelleaSession
 from dotenv import load_dotenv
 import os
+import json
 import logging
 
 # Configure logging
-logging.basicConfig(
-    level=logging.WARNING,  # Root: suppress all libraries by default
-    format='%(message)s'
-)
+logging.basicConfig(level=logging.WARNING, format='%(message)s')
 
 # Enable INFO logging only for qux360
 logging.getLogger("qux360").setLevel(logging.INFO)
 
 load_dotenv()
 
-ROOT_DIR = os.path.dirname(Path('__file__').absolute())
+ROOT_DIR = Path.cwd()
+data_dir = ROOT_DIR.joinpath("examples/data")
+file = data_dir.joinpath("interview_A.csv")
+config_file = ROOT_DIR.joinpath("examples/config.json")
 
-#m = MelleaSession(backend=WatsonxAIBackend(model_id=os.getenv("MODEL_ID_WATSONX")))
 m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID")))
 
 # Suppress Mellea's FancyLogger (MelleaSession resets it to DEBUG, so we set it here)
 logging.getLogger('fancy_logger').setLevel(logging.WARNING)
-data_dir = os.path.join(ROOT_DIR, "examples/data")
-file = os.path.join(data_dir, "interview_A.csv")
+
 
 # STEP 1: Load interview
 print("=" * 60)
@@ -35,11 +33,12 @@ print("STEP 1: Loading interview")
 print("=" * 60)
 
 participant_id = "P1"
-config_file = os.path.join(ROOT_DIR, "examples/config.json")
+
 
 # [OPTION A] create an instance without headers config (has headers by default)
 
 i = Interview(file)
+
 # [OPTION B] create an instance with headers config
 '''
 try:
@@ -93,7 +92,3 @@ topics_result.print_summary(
     title="Topic Extraction Results",
     item_label="Topic"
 )
-
-print("\n" + "=" * 60)
-print("ANALYSIS COMPLETE")
-print("=" * 60)

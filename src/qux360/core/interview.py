@@ -175,14 +175,7 @@ class Interview:
             wrap_top = writer.book.add_format({"text_wrap": True, "valign": "top"})
 
             # Column width spec
-            col_widths = {
-                "timestamp": 10,
-                "speaker_id": 10,
-                "speaker": 25,
-                "statement": 60,
-                "codes": 20,
-                "themes": 20,
-            }
+            col_widths = {"timestamp": 10, "speaker_id": 10, "speaker": 25, "statement": 60, "codes": 20, "themes": 20}
 
             # Apply formatting
             for idx, col in enumerate(df.columns):

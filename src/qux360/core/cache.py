@@ -14,10 +14,8 @@ import pandas as pd
 
 if TYPE_CHECKING:
     from .interview import Interview
-    from .study import Study
 
-from .validated import Validated, ValidatedList
-from .models import TopicList, ThemeList
+from .models import TopicList
 from .iffy import IffyIndex
 
 logger = logging.getLogger(__name__)
@@ -224,96 +222,3 @@ def try_load_or_parse(file: Path, cache_dir: Optional[Path] = None, **parse_kwar
     interview.file_path = file  # Ensure file_path is set
 
     return interview
-
-
-def save_study_state(study: 'Study', cache_dir: Path) -> Path:
-    """
-    Save complete study state (all interviews + metadata).
-
-    Parameters
-    ----------
-    study : Study
-        The study instance to save
-    cache_dir : Path
-        Directory to save study state and all interview caches
-
-    Returns
-    -------
-    Path
-        Path to the study state file
-    """
-    from .study import Study  # Avoid circular import
-
-    logger.debug(f"Save study state - Study: {study}")
-
-    cache_dir = Path(cache_dir)
-    cache_dir.mkdir(exist_ok=True)
-
-    # Save each interview
-    interview_cache_paths = []
-    for interview in study.documents:
-        interview_cache_path = cache_dir / f"{interview.id}_state.json"
-        save_interview_state(interview, interview_cache_path)
-        interview_cache_paths.append(str(interview_cache_path))
-
-    # Save study-level state
-    study_state = {
-        'version': '1.0',
-        'study_context': study.study_context,
-        'metadata': study.metadata,
-        'interview_cache_paths': interview_cache_paths,
-        # Note: themes_top_down is NOT cached - theme analysis should be re-run each time
-    }
-
-    study_cache_path = cache_dir / "study_state.json"
-    with open(study_cache_path, 'w') as f:
-        json.dump(study_state, f, indent=2)
-
-    logger.debug(f"Saved study state to {cache_dir}")
-    return study_cache_path
-
-
-def load_study_state(cache_dir: Path) -> 'Study':
-    """
-    Load study from saved state directory.
-
-    Parameters
-    ----------
-    cache_dir : Path
-        Directory containing study_state.json and interview caches
-
-    Returns
-    -------
-    Study
-        Reconstructed study instance with all interviews
-    """
-    from .study import Study  # Avoid circular import
-
-    logger.debug(f"Load study state - Cache path: {cache_dir}")
-
-    cache_dir = Path(cache_dir)
-    study_cache_path = cache_dir / "study_state.json"
-
-    if not study_cache_path.exists():
-        raise FileNotFoundError(f"Study cache not found: {study_cache_path}")
-
-    with open(study_cache_path, 'r') as f:
-        study_state = json.load(f)
-
-    # Load all interviews
-    interviews = []
-    for interview_cache_path in study_state['interview_cache_paths']:
-        interview = load_interview_state(Path(interview_cache_path), validate_source=False)
-        interviews.append(interview)
-
-    # Reconstruct Study
-    study = Study.__new__(Study)
-    study.documents = interviews
-    study.study_context = study_state['study_context']
-    study.metadata = study_state['metadata']
-
-    # Theme caching removed - themes should be regenerated each run
-    study.themes_top_down = None
-
-    logger.debug(f"Loaded study state from {cache_dir}")
-    return study

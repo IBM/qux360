@@ -1,19 +1,23 @@
 """
-Example: Fast iteration on theme analysis using cached interviews + topics
+Example: Fast iteration on thematic analysis using cached interviews + topics
 
-This script demonstrates automatic caching workflow:
+This script demonstrates interactive caching workflow:
 
-FIRST RUN (no cache):
+CACHE CHECK:
+  - If cache exists: Prompts user to load from cache (y/n)
+  - If cache doesn't exist: Loads from source files
+
+FIRST RUN (no cache) or USER DECLINES CACHE:
   1. Loads interviews from source files
   2. Identifies interviewees
-  3. Extracts topics (expensive LLM calls)
+  3. Extracts topics
   4. Saves interviews + topics to cache
-  5. Runs theme analysis
+  5. Runs thematic analysis
 
-SUBSEQUENT RUNS (cache exists):
+SUBSEQUENT RUNS (cache exists and user accepts):
   1. Loads interviews + topics from cache (fast!)
   2. Skips topic extraction
-  3. Runs theme analysis (can iterate quickly)
+  3. Runs thematic analysis (can iterate quickly)
 """
 
 from pathlib import Path
@@ -24,65 +28,67 @@ from dotenv import load_dotenv
 import os
 import logging
 
-# Configure logging
-logging.basicConfig(
-    level=logging.WARNING,
-    format='%(message)s'
-)
+# Configure logging, silence all libs, enable ours
+logging.basicConfig(level=logging.WARNING, format='%(message)s')
 logging.getLogger("qux360").setLevel(logging.INFO)
 
 load_dotenv()
 
-ROOT_DIR = os.path.dirname(Path('__file__').absolute())
+ROOT_DIR = Path.cwd()
+data_dir = ROOT_DIR.joinpath("examples/data")
+interview_files = [data_dir.joinpath("interview_A.csv"), data_dir.joinpath("interview_B.csv"), data_dir.joinpath("interview_C.csv")]
 
-#m = MelleaSession(backend=WatsonxAIBackend(model_id=os.getenv("MODEL_ID_WATSONX")))
 m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID")))
 
 # Disable mellea's progress bar
 logging.getLogger('fancy_logger').setLevel(logging.WARNING)
 
-data_dir = os.path.join(ROOT_DIR, "examples/data")
-
 print("=" * 60)
 print("SMART LOADING: Interviews + Topics")
 print("=" * 60)
 
-interview_files = [
-    os.path.join(data_dir, "interview_A.csv"),
-    os.path.join(data_dir, "interview_B.csv"),
-    os.path.join(data_dir, "interview_C.csv")
-]
+# Check if cache exists on disk
+cache_dir = os.path.join(data_dir, ".qux360_cache")
+cache_exists = os.path.exists(cache_dir) and os.path.isdir(cache_dir)
 
-# Load study with automatic caching (default behavior)
-# - First run: parses files, creates .qux360_cache/ for each interview
-# - Subsequent runs: loads from cache
+use_cache = True  # Default behavior
+
+if cache_exists:
+    print(f"\n📁 Cache directory found: {cache_dir}")
+    user_choice = input("🔄 Load interviews from cache? (y/n): ").strip().lower()
+    use_cache = (user_choice == 'y')
+    if use_cache:
+        print("⚡ Loading from cache...")
+    else:
+        print("🔄 Loading from source files...")
+else:
+    print("\n📁 No cache found - loading from source files...")
+
+# Load study with caching based on user choice
+# - use_cache=True: loads from .qux360_cache/ if available
+# - use_cache=False: parses from source files
 study = Study(
     interview_files,
     study_context="A qualitative study about remote work experiences and challenges",
-    use_cache=True  # This is the default
+    use_cache=use_cache
 )
 
 print(f"\n✅ Study loaded: {len(study)} interviews")
 print(f"   Context: {study.study_context}")
 
 # Check if we need to run topic extraction
-needs_topic_extraction = False
-for interview in study.documents:
-    if interview.topics_top_down is None:
-        needs_topic_extraction = True
-        break
+needs_topic_extraction = any(interview.topics_top_down is None for interview in study.documents)
 
 if needs_topic_extraction:
     print("\n" + "=" * 60)
-    print("FIRST RUN: Extracting topics (this will be cached)")
+    print("TOPIC EXTRACTION: Extracting topics from interviews (may take a few minutes)")
     print("=" * 60)
-    print("\n⏳ This may take a few minutes...")
 
     # Identify interviewees
     print("\n→ Step 1: Identifying interviewees...")
     results = study.identify_interviewees(m)
     for interview_id, result in results.items():
-        print(f"   {interview_id}: {result.result} ({result.validation})")
+        print(f"   {interview_id}: {result.result} ({str(result.validation)})")
 
     # Extract topics (expensive!)
     print("\n→ Step 2: Extracting topics from all interviews...")
@@ -95,17 +101,15 @@ if needs_topic_extraction:
             print(f"   ⚠️ {interview_id}: {topics_result.validation.explanation}")
 
     # Save interviews with topics to cache
-    print("\n→ Step 3: Saving to cache for next run...")
+    print("\n→ Step 3: Saving to cache...")
     for interview in study.documents:
-        interview.save_state()  # Saves to .qux360_cache/ next to source file
+        interview.save_state()
 
     print("\n✅ Topics extracted and cached!")
-    print("   Next time you run this script, it will load instantly from cache.\n")
 else:
     print("\n" + "=" * 60)
-    print("CACHE HIT: Topics loaded from cache")
+    print("TOPICS LOADED: Using cached topics")
     print("=" * 60)
-    print("\n⚡ Skipping topic extraction - using cached results!")
 
     # Show cached topics with condensed validation summary
     for interview in study.documents:

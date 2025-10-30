@@ -598,7 +598,7 @@ class Study:
         ValueError
             If n < 1, max_quotes_per_topic < 1, or max_quote_length < 50
         """
-        logger.debug(f"Starting suggest_themes for study {self.id} (n={n}, context={study_context})")
+        logger.info(f"Starting suggest_themes for study {self.id} (n={n}, context={study_context})")
 
         # Precondition 1: Study must have at least 2 interviews
         if len(self.documents) < 2:
@@ -711,10 +711,8 @@ class Study:
         # Handle n parameter (unlimited if None)
         if n is not None:
             n_instruction = f"{n} cross-cutting, recurring themes"
-            n_requirement = f"Generate exactly {n} recurring themes"
         else:
             n_instruction = "all cross-cutting, recurring themes that emerge from the data"
-            n_requirement = "Generate all themes that represent significant, recurring patterns across interviews. Focus on quality over quantity - include only themes with strong evidence."
 
         prompt = """
         You are analyzing topics extracted from multiple interviews in a qualitative study.
@@ -823,38 +821,3 @@ class Study:
                 explanation=f"Failed to generate themes: {str(e)}"
             )
             return Validated(result=None, validation=validation)
-
-    def save_state(self, cache_dir: Path) -> Path:
-        """
-        Save complete study state (all interviews + themes).
-
-        Parameters
-        ----------
-        cache_dir : Path
-            Directory to save study state and all interview caches
-
-        Returns
-        -------
-        Path
-            Path to the study state file
-        """
-        from .cache import save_study_state
-        return save_study_state(self, cache_dir)
-
-    @classmethod
-    def load_from_cache(cls, cache_dir: Path) -> 'Study':
-        """
-        Load study from cache directory.
-
-        Parameters
-        ----------
-        cache_dir : Path
-            Directory containing study_state.json and interview caches
-
-        Returns
-        -------
-        Study
-            Reconstructed study with all interviews and state
-        """
-        from .cache import load_study_state
-        return load_study_state(cache_dir)
