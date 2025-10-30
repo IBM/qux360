@@ -4,13 +4,9 @@ __pycache__/
 .env
 .venv/
 poetry.lock
-Makefile
 examples/data/*_exported.xlsx
-.claude/
 .vscode/
-CLAUDE.md
 dist/
 
 # Qux360 cache directories
 .qux360_cache/
-.study_cache/
