@@ -59,7 +59,7 @@ The cache is stored in `.qux360_cache/interview_A_state.json` next to the source
 ### 1. Single Interview Caching
 
 ```python
-from qux360.core.interview import Interview
+from qux360.core import Interview
 
 # Automatic caching (default)
 interview = Interview("data/interview.docx")
@@ -81,7 +81,7 @@ interview = Interview.load_from_cache(Path(".qux360_cache/interview_state.json")
 ### 2. Study-Level Caching
 
 ```python
-from qux360.core.study import Study
+from qux360.core import Study
 
 # Automatic caching for all interviews (default)
 study = Study(

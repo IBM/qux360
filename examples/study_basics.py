@@ -1,5 +1,5 @@
 from pathlib import Path
-from qux360.core.study import Study
+from qux360.core import Study
 from mellea import MelleaSession
 from mellea.backends.litellm import LiteLLMBackend
 from dotenv import load_dotenv

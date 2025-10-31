@@ -21,7 +21,7 @@ SUBSEQUENT RUNS (cache exists and user accepts):
 """
 
 from pathlib import Path
-from qux360.core.study import Study
+from qux360.core import Study
 from mellea import MelleaSession
 from mellea.backends.litellm import LiteLLMBackend
 from dotenv import load_dotenv
@@ -36,7 +36,7 @@ load_dotenv()
 
 ROOT_DIR = Path.cwd()
 data_dir = ROOT_DIR.joinpath("examples/data")
-interview_files = [data_dir.joinpath("interview_A.csv"), data_dir.joinpath("interview_B.csv"), data_dir.joinpath("interview_C.csv")]
+interview_files = [data_dir.joinpath("interview_A.csv"), data_dir.joinpath("interview_C.csv")]
 
 m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID")))
 

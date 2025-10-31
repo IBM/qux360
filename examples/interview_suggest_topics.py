@@ -1,5 +1,5 @@
 from pathlib import Path
-from qux360.core.interview import Interview
+from qux360.core import Interview
 from mellea import MelleaSession
 #from mellea.backends.watsonx import WatsonxAIBackend
 from mellea.backends.litellm import LiteLLMBackend
