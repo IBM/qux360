@@ -2,6 +2,19 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Literal
 
 
+class IntervieweeIdentification(BaseModel):
+    """LLM identification of the interviewee in a transcript."""
+    interviewee: str = Field(
+        description="The speaker ID of the identified interviewee (must match a speaker in the transcript)"
+    )
+    confidence: Literal["high", "medium", "low"] = Field(
+        description="Confidence in the identification: high (clear patterns), medium (some ambiguity), low (uncertain)"
+    )
+    explanation: str = Field(
+        description="1-2 sentences explaining why this speaker is the interviewee based on conversation patterns"
+    )
+
+
 class CoherenceAssessment(BaseModel):
     """LLM assessment of theme coherence."""
     rating: Literal["Strong", "Acceptable", "Weak"] = Field(

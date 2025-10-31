@@ -17,8 +17,9 @@ from qux360.core import Validated, ValidatedList
 from qux360.core.utils import print_mellea_validations
 import copy
 
-from .models import TopicList, Quote
+from .models import TopicList, Quote, IntervieweeIdentification
 from .utils import validate_transcript_columns, format_quotes_for_display, parse_quality_rating
+from .validators import MelleaRequirementsValidator, HeuristicAgreementValidator
 from ..io.docx_parser import parse_docx
 from ..io.xlsx_parser import parse_xlsx
 from ..io.csv_parser import parse_csv
@@ -217,136 +218,167 @@ class Interview:
         return speakers
 
  
-    def identify_interviewee(self, m: Optional[MelleaSession] = None) -> Validated[str | None]:
+    def identify_interviewee(self, m: MelleaSession, snippet_size: int = 25) -> Validated[IntervieweeIdentification]:
         """
-        Identify the likely interviewee via heuristic and/or LLM.
+        Identify the likely interviewee using AI analysis with validation.
 
-        Returns a Validated result containing the predicted interviewee and validation assessment.
+        This method uses graceful degradation: if AI identification fails due to
+        network errors, API issues, or LLM formatting problems, it automatically
+        falls back to a word-count heuristic and returns a result with "iffy"
+        status rather than raising an exception.
+
+        Validation Strategy
+        -------------------
+        Two validators are applied:
+        1. Mellea requirements (informational - tracks internal requirement scores)
+        2. Heuristic validation (primary - word count agreement with AI result)
+
+        The overall validation status is determined by the heuristic validator only.
+        Mellea requirements are informational and don't affect the overall status.
 
         Parameters
         ----------
-        m : Optional[MelleaSession]
-            If provided, uses LLM to validate heuristic prediction
+        m : MelleaSession
+            Active Mellea session for AI analysis (required)
+        snippet_size : int, default=25
+            Number of transcript rows to analyze (from the beginning)
 
         Returns
         -------
-        Validated[str | None]
-            Validated result with predicted interviewee and composite validation
-            from heuristic and optional LLM checks
+        Validated[IntervieweeIdentification]
+            Always returns a Validated result, even on AI failure.
 
-        Examples
-        --------
-        >>> result = interview.identify_interviewee(m)
-        >>> print(result.validation)  # Overall validation
-        >>> print(result.result)  # Predicted interviewee
-        >>> if result.passed_validation():
-        ...     interviewee = result.result
+            On success:
+            - result: LLM identification with confidence and explanation
+            - validation.status: "ok", "check", or "iffy" based on heuristic agreement
+
+            On AI failure (network, API, validation errors):
+            - result: Heuristic fallback (speaker with most words)
+            - validation.status: "iffy" with error details in explanation
+            - result.confidence: "low"
+
+            Always check validation.status before using the result.
+
+        Raises
+        ------
+        ValueError
+            If transcript is empty or missing required columns.
+            These are data validation errors (caller's responsibility).
+            AI/LLM failures do NOT raise exceptions - they return degraded results.
         """
-        logger.debug(f"Identify Interviewee - Interview ID: {self.id}")
-        # Nothing to work on
-        if self.transcript.empty or 'speaker' not in self.transcript:
-            return Validated(
-                result=None,
-                validation=QIndex.from_check(
-                    method="data_check",
-                    status="iffy",
-                    explanation="Transcript is empty or missing 'speaker' column"
-                )
-            )
+        logger.info(f"Identify Interviewee - Interview ID: {self.id}")
 
-        # Check 1: Heuristic (word count)
-        logger.debug(f"Heuristic validation - Interview ID: {self.id}")
-        validate_transcript_columns(self.transcript, ['speaker', 'statement'])
-        
-        counts = self.transcript.groupby("speaker")["statement"].apply(
-            lambda x: x.str.split().str.len().sum()
-        )
-        predicted_heuristic = counts.idxmax()
-        total_words = counts.sum()
-        ratio = counts[predicted_heuristic] / total_words if total_words > 0 else 0.0
+        # Data precondition checks - use exceptions, not QIndex
+        if self.transcript.empty:
+            raise ValueError("Transcript is empty")
+        if 'speaker' not in self.transcript.columns:
+            raise ValueError("Transcript is missing 'speaker' column")
 
-        # Determine heuristic status
-        logger.debug(f"Determine heuristic status - Interview ID: {self.id}")
-        if ratio >= 0.70:
-            heuristic_status = "ok"
-        elif ratio >= 0.60:
-            heuristic_status = "check"
-        else:
-            heuristic_status = "iffy"
-
-        heuristic_check = QIndex.from_check(
-            method="heuristic",
-            status=heuristic_status,
-            explanation=f"{predicted_heuristic} has {ratio:.0%} of words",
-            metadata={"word_ratio": ratio, "prediction": predicted_heuristic}
-        )
-
-        checks = [heuristic_check]
-
-        # Check 2: Optional LLM prediction
-        logger.debug(f"Optional LLM prediction - Interview ID: {self.id}")
         validate_transcript_columns(self.transcript, ['timestamp', 'speaker', 'statement'])
 
-        if m:
-            snippet = "\n".join(
-                f"[{row['timestamp']}] {row['speaker']}: {shorten(str(row['statement']), width=120)}"
-                for _, row in self.transcript.head(25).iterrows()
-            )
-            predicted_llm = str(m.instruct(
-                """
-                You are given an interview transcript snippet with multiple speakers.
-                One or more speakers are the interviewers (asking questions).
-                One speaker is the interviewee (giving longer answers).
-                Based on the transcript snippet, identify the interviewee by ID (from the speaker column).
-
-                Transcript Snippet:
-                {{snippet}}
-
-                Question: Who is the interviewee?
-                """,
-                requirements=[
-                    "The answer should ONLY contain the speaker ID exactly as shown in the speaker column",
-                    "There should be no explanation"
-                ],
-                strategy=RejectionSamplingStrategy(loop_budget=2),
-                user_variables={"snippet": snippet}
-            )).strip()
-
-            # Evaluate LLM check based on agreement and heuristic strength
-            if predicted_llm == predicted_heuristic:
-                llm_status = "ok"
-                llm_explanation = f"LLM agreed: {predicted_llm}"
-            else:
-                # Disagreement - but strong heuristic can override
-                if ratio >= 0.80:
-                    llm_status = "ok"
-                    llm_explanation = f"LLM disagreed (suggested {predicted_llm}), but heuristic is strong ({ratio:.0%})"
-                elif ratio >= 0.70:
-                    llm_status = "check"
-                    llm_explanation = f"LLM disagreed (suggested {predicted_llm}), moderate confidence ({ratio:.0%})"
-                else:
-                    llm_status = "iffy"
-                    llm_explanation = f"LLM disagreed (suggested {predicted_llm}), low confidence ({ratio:.0%})"
-
-            llm_check = QIndex.from_check(
-                method="llm",
-                status=llm_status,
-                explanation=llm_explanation,
-                metadata={"prediction": predicted_llm, "agreement": predicted_llm == predicted_heuristic}
-            )
-            checks.append(llm_check)
-
-        # Aggregate validation checks
-        overall_validation = QIndex.from_checks(checks, aggregation="consensus")
-
-        # Metadata update only if validation passed
-        if overall_validation.status in ("ok", "check"):
-            self.metadata["participant_id"] = predicted_heuristic
-
-        return Validated(
-            result=predicted_heuristic,
-            validation=overall_validation
+        # Prepare transcript snippet for LLM
+        snippet = "\n".join(
+            f"[{row['timestamp']}] {row['speaker']}: {shorten(str(row['statement']), width=120)}"
+            for _, row in self.transcript.head(snippet_size).iterrows()
         )
+
+        # Get list of speakers for requirements
+        speakers_list = ", ".join(self.get_speakers())
+
+        # Call Mellea for structured interviewee identification
+        logger.info(f"Calling Mellea for interviewee identification - Interview ID: {self.id}")
+        prompt = """
+        You are analyzing an interview transcript to identify the interviewee.
+
+        In interviews, typically:
+        - One or more speakers are interviewers (asking questions, shorter responses)
+        - One speaker is the interviewee (giving detailed answers, longer responses)
+
+        Transcript Snippet:
+        {{snippet}}
+
+        Identify the interviewee, assess your confidence, and provide and explanation.
+        """
+
+        requirements = [
+            f"The interviewee field must be one of these speaker IDs: {speakers_list}",
+            "The confidence field must be 'high', 'medium', or 'low'",
+            "The explanation must explain the conversation patterns that led to this identification (1-2 sentences)"
+        ]
+
+        try:
+            response = m.instruct(
+                description=prompt,
+                user_variables={"snippet": snippet},
+                requirements=requirements, # type: ignore
+                format=IntervieweeIdentification,
+                strategy=RejectionSamplingStrategy(loop_budget=1),
+                return_sampling_results=True
+            )
+
+            # Print Mellea validations
+            if logger.isEnabledFor(logging.DEBUG): 
+                print_mellea_validations(response, title="Mellea Interviewee Identification Validations")
+
+            # Parse structured result
+            identification = IntervieweeIdentification.model_validate_json(response._underlying_value)
+            logger.info(f"LLM identified: {identification.interviewee} (self-confidence: {identification.confidence})")
+
+            # Validator 1: Mellea requirements (informational)
+            logger.debug(f"Validator 1: Extracting Mellea validation scores - Interview ID: {self.id}")
+            mellea_validator = MelleaRequirementsValidator(adjust_status=True)
+            mellea_check = mellea_validator.validate(
+                response,
+                result_summary=f"LLM identified: {identification.interviewee} - Explanation: {identification.explanation}"
+            )
+
+            # Validator 2: Heuristic agreement (primary)
+            logger.debug(f"Validator 2: Calculating heuristic agreement - Interview ID: {self.id}")
+            heuristic_validator = HeuristicAgreementValidator(
+                ok_threshold=0.60,
+                check_threshold=0.50
+            )
+            heuristic_check = heuristic_validator.validate(identification, self.transcript)
+
+            # Aggregate both validators
+            overall_validation = QIndex.from_checks(
+                [mellea_check, heuristic_check],
+                aggregation="consensus"
+            )
+
+            # Update metadata only if validation passed
+            if overall_validation.status in ("ok", "check"):
+                self.metadata["participant_id"] = identification.interviewee
+
+            return Validated(
+                result=identification,
+                validation=overall_validation
+            )
+
+        except Exception as e:
+            logger.error(f"Interviewee identification failed: {str(e)}")
+
+            # Calculate heuristic fallback
+            counts = self.transcript.groupby("speaker")["statement"].apply(
+                lambda x: x.str.split().str.len().sum()
+            )
+            predicted_heuristic = counts.idxmax()
+            total_words = counts.sum()
+            heuristic_ratio = counts[predicted_heuristic] / total_words if total_words > 0 else 0.0
+
+            # Create fallback IntervieweeIdentification object
+            fallback_identification = IntervieweeIdentification(interviewee=predicted_heuristic, confidence="low", explanation=f"AI identification failed, using heuristic fallback (word count analysis)")
+
+            # Return with iffy status on failure
+            return Validated(
+                result=fallback_identification,
+                validation=QIndex.from_check(
+                    method="identification_error",
+                    status="iffy",
+                    explanation=f"AI identification failed, using heuristic fallback, speaker: {predicted_heuristic}, word ratio: {heuristic_ratio}, Exception: {str(e)} ",
+                    metadata={"heuristic_prediction": predicted_heuristic, "word_ratio": heuristic_ratio}
+                )
+            )
 
     def detect_entities(self, model: str = "en_core_web_trf", verbose: bool = False) -> list[dict]:
         """
@@ -794,34 +826,21 @@ class Interview:
         -------
         ValidatedList[Topic]
             List of topics with per-topic and overall validation results.
+
+        Raises
+        ------
+        ValueError
+            If transcript is empty or missing participant_id in metadata
         """
         logger.debug(f"Starting suggest_topics_top_down for interview {self.id} (n={n}, context={interview_context})")
         df = self.transcript
 
-        # Edge case 1: Empty transcript
+        # Data precondition checks - use exceptions, not QIndex
         if df.empty:
-            return ValidatedList(
-                result=[],
-                validation=QIndex.from_check(
-                    method="data_check",
-                    status="iffy",
-                    explanation="Transcript is empty"
-                ),
-                item_validations=[]
-            )
+            raise ValueError("Transcript is empty")
 
-        # Edge case 2: Missing participant_id
         if "participant_id" not in self.metadata:
-            return ValidatedList(
-                result=[],
-                validation=QIndex.from_check(
-                    method="data_check",
-                    status="iffy",
-                    explanation="Missing participant_id in metadata (required for thematic analysis)"
-                ),
-                item_validations=[]
-            )
-
+            raise ValueError("Missing participant_id in metadata (required for thematic analysis)")
 
         validate_transcript_columns(self.transcript, ['timestamp', 'speaker', 'statement'])
 

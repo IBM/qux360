@@ -44,8 +44,7 @@ def print_mellea_validations(response, title: str = "Validations") -> None:
             if res.score is not None:
                 print(f"  🔢 Score: {res.score:.2f}")
             if res.reason:
-                # Truncate reason to 80 characters total (including prefix)
-                reason_text = res.reason[:69] + "..." if len(res.reason) > 69 else res.reason
+                reason_text = res.reason[:300] + "..." if len(res.reason) > 300 else res.reason
                 print(f".  Reason: {reason_text}")
             if req.check_only:
                 print(f"  ⚙️  (Check-only requirement)")
@@ -159,3 +158,109 @@ def parse_coherence_rating(rating: str) -> tuple[str, str]:
         return "iffy", "Weak coherence"
     else:
         return "check", "Coherence assessment unclear"
+
+
+def extract_mellea_validation_status(response) -> tuple[str, str, list[str], dict]:
+    """
+    Extract validation status from Mellea sample_validations and convert to QIndex status.
+
+    Analyzes Mellea's internal validation results to determine overall quality:
+    - All requirements passed (score >= 0.5 or _result == True) -> "ok"
+    - Some requirements passed, some check-only -> "check"
+    - Any requirements failed -> "iffy"
+
+    Parameters
+    ----------
+    response : MelleaResponse
+        Response object from m.instruct() with return_sampling_results=True
+
+    Returns
+    -------
+    tuple[str, str, list[str], dict]
+        (status, explanation, requirement_details, metadata) where:
+        - status: "ok", "check", or "iffy"
+        - explanation: Human-readable summary of validation results
+        - requirement_details: List of strings describing each requirement result
+        - metadata: Dict with detailed validation info (passed_count, failed_count, etc.)
+    """
+    if not hasattr(response, 'sample_validations') or not response.sample_validations:
+        return "check", "No Mellea validation data available", [], {}
+
+    # Flatten all validation results across groups
+    all_validations = []
+    for validation_group in response.sample_validations:
+        all_validations.extend(validation_group)
+
+    if not all_validations:
+        return "check", "No validation requirements found", [], {}
+
+    # Analyze validation results and build detailed list
+    passed_count = 0
+    failed_count = 0
+    check_only_count = 0
+    total_score = 0.0
+    scored_count = 0
+    requirement_details = []
+
+    for req, res in all_validations:
+        req_desc = req.description or "(no description)"
+
+        if req.check_only:
+            check_only_count += 1
+            requirement_details.append(f"[CHECK-ONLY] {req_desc}")
+            continue
+
+        # Consider a validation passed if result is True or score >= 0.5
+        is_passed = res._result is True or (res.score is not None and res.score >= 0.5)
+
+        # Build detail string
+        status_icon = "✓" if is_passed else "✗"
+        detail = f"[{status_icon}] {req_desc}"
+        if res.score is not None:
+            detail += f" (score: {res.score:.2f})"
+
+        requirement_details.append(detail)
+
+        if is_passed:
+            passed_count += 1
+        else:
+            failed_count += 1
+
+        if res.score is not None:
+            total_score += res.score
+            scored_count += 1
+
+    # Calculate average score
+    avg_score = total_score / scored_count if scored_count > 0 else None
+
+    # Determine status
+    total_requirements = passed_count + failed_count
+
+    if failed_count == 0 and passed_count > 0:
+        status = "ok"
+        explanation = f"All {passed_count} Mellea requirements passed"
+        if avg_score is not None:
+            explanation += f" (avg score: {avg_score:.2f})"
+    elif failed_count > 0 and passed_count > 0:
+        status = "check"
+        explanation = f"{passed_count}/{total_requirements} Mellea requirements passed"
+        if avg_score is not None:
+            explanation += f" (avg score: {avg_score:.2f})"
+    elif failed_count > 0:
+        status = "iffy"
+        explanation = f"All {failed_count} Mellea requirements failed"
+        if avg_score is not None:
+            explanation += f" (avg score: {avg_score:.2f})"
+    else:
+        status = "check"
+        explanation = "Only check-only requirements found"
+
+    metadata = {
+        "passed_count": passed_count,
+        "failed_count": failed_count,
+        "check_only_count": check_only_count,
+        "total_requirements": total_requirements,
+        "avg_score": avg_score
+    }
+
+    return status, explanation, requirement_details, metadata

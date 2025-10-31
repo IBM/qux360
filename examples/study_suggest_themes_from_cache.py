@@ -90,7 +90,7 @@ if needs_topic_extraction:
     print("\n→ Step 1: Identifying interviewees...")
     results = study.identify_interviewees(m)
     for interview_id, result in results.items():
-        print(f"   {interview_id}: {result.result} ({str(result.validation)})")
+        print(f"   {interview_id}: {result.result.interviewee} ({str(result.validation)})")
 
     # Extract topics (expensive!)
     print("\n→ Step 2: Extracting topics from all interviews...")
@@ -142,7 +142,7 @@ themes_result = study.suggest_themes(m)
 
 # Display themes using print_summary
 if themes_result and themes_result.result:
-    themes_result.print_summary(title="Thematic Analysis Results", item_label="Theme")
+    themes_result.print_summary(title="Thematic Analysis Results", item_label="Theme") # type: ignore
 else:
     print(f"⚠️ Theme extraction failed: {themes_result.validation.explanation if themes_result else 'No result'}")
 
