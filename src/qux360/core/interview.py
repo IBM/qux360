@@ -592,7 +592,7 @@ class Interview:
 
         Returns
         -------
-        IffyIndex
+        QIndex
             Aggregated validation result for this topic
         """
         checks = []
@@ -751,12 +751,12 @@ class Interview:
 
         Parameters
         ----------
-        topic_validations : list[IffyIndex]
+        topic_validations : list[QIndex]
             Per-topic validation results
 
         Returns
         -------
-        IffyIndex
+        QIndex
             Overall validation result
         """
         if topic_validations:

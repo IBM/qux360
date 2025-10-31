@@ -11,7 +11,7 @@ logging.getLogger('qux360').setLevel(logging.WARNING)
 # Note: MelleaSession resets this to DEBUG, so examples re-set it after instantiation
 logging.getLogger('fancy_logger').setLevel(logging.WARNING)
 
-from .iffy import QIndex
+from .qindex import QIndex
 from .validated import Validated, ValidatedList
 from .interview import Interview
 from .study import Study

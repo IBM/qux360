@@ -103,7 +103,7 @@ def parse_quality_rating(rating: str) -> tuple[str, str]:
     """
     Parse LLM quality rating into status and explanation.
 
-    Maps quality ratings to IffyIndex statuses:
+    Maps quality ratings to QIndex statuses:
     - "excellent" -> "ok"
     - "acceptable" -> "check"
     - "poor" or other -> "iffy"
@@ -134,7 +134,7 @@ def parse_coherence_rating(rating: str) -> tuple[str, str]:
     """
     Parse LLM coherence rating into status and prefix.
 
-    Maps coherence ratings to IffyIndex statuses:
+    Maps coherence ratings to QIndex statuses:
     - "strong" -> "ok", "Strong coherence"
     - "acceptable" -> "check", "Acceptable coherence (review recommended)"
     - "weak" or other -> "iffy", "Weak coherence"

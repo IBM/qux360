@@ -27,7 +27,7 @@ class QIndex:
         Name of validation method (set for individual checks only)
     metadata : Optional[Dict]
         Additional validation metadata (e.g., confidence scores, ratios)
-    checks : List[IffyIndex]
+    checks : List[QIndex]
         Nested validation checks (set for composite results only)
     informational : bool
         If True, this check is informational only and won't affect aggregated validation status
@@ -51,7 +51,7 @@ class QIndex:
         informational: bool = False
     ) -> QIndex:
         """
-        Create an IffyIndex representing a single validation check.
+        Create a QIndex representing a single validation check.
 
         Parameters
         ----------
@@ -70,7 +70,7 @@ class QIndex:
 
         Returns
         -------
-        IffyIndex
+        QIndex
             Single validation check result
         """
         return cls(
@@ -90,14 +90,14 @@ class QIndex:
         aggregation: str = "strictest"
     ) -> QIndex:
         """
-        Aggregate multiple IffyIndex results into a composite result.
+        Aggregate multiple QIndex results into a composite result.
 
         Informational checks (informational=True) are included in the checks list
         but do not affect the aggregated validation status.
 
         Parameters
         ----------
-        checks : List[IffyIndex]
+        checks : List[QIndex]
             Individual validation check results to aggregate
         aggregation : str, default="strictest"
             Strategy for aggregation:
@@ -106,7 +106,7 @@ class QIndex:
 
         Returns
         -------
-        IffyIndex
+        QIndex
             Composite validation result with nested checks
 
         Raises
@@ -172,7 +172,7 @@ class QIndex:
 
         Returns
         -------
-        Optional[IffyIndex]
+        Optional[QIndex]
             The matching check, or None if not found
         """
         for check in self.checks:
@@ -222,7 +222,7 @@ class QIndex:
     @classmethod
     def from_dict(cls, d: dict) -> 'QIndex':
         """
-        Reconstruct IffyIndex from dictionary representation.
+        Reconstruct QIndex from dictionary representation.
 
         Parameters
         ----------
@@ -231,7 +231,7 @@ class QIndex:
 
         Returns
         -------
-        IffyIndex
+        QIndex
             Reconstructed validation object
         """
         # Recursively reconstruct nested checks

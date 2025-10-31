@@ -7,7 +7,7 @@ from datetime import datetime
 from .interview import Interview
 from .models import ThemeList, TopicList, CoherenceAssessment
 from .validated import Validated, ValidatedList
-from .iffy import QIndex
+from .qindex import QIndex
 from .utils import print_mellea_validations, parse_coherence_rating
 from mellea import MelleaSession
 from mellea.stdlib.sampling import RejectionSamplingStrategy
@@ -215,12 +215,12 @@ class Study:
 
         Parameters
         ----------
-        theme_validations : List[IffyIndex]
+        theme_validations : List[QIndex]
             Per-theme validation results
 
         Returns
         -------
-        IffyIndex
+        QIndex
             Overall validation with detailed status counts in explanation
         """
         if not theme_validations:
@@ -288,7 +288,7 @@ class Study:
 
         Returns
         -------
-        IffyIndex
+        QIndex
             Aggregated validation result for this theme
         """
         checks = []
