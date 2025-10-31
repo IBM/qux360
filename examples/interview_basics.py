@@ -27,6 +27,11 @@ logging.getLogger('fancy_logger').setLevel(logging.WARNING)
 
 participant_id = "P1"
 
+# STEP 1: Load interview
+print("=" * 60)
+print("STEP 1: Loading interview")
+print("=" * 60)
+
 # [OPTION A] create an instance without headers config (has headers by default)
 i = Interview(file)
 
@@ -39,36 +44,46 @@ with open(config_file, "r", encoding="utf-8") as f:
 i = Interview(file, headers=config['headers'])
 '''
 
-# see what we loaded
+print(f"\nLoaded interview: {i}")
+print("\nTranscript preview:")
 i.show(10)
 
 # look at the speakers
 speakers = i.get_speakers()
-print(f"\nSpeakers: {speakers}")
+print(f"\nSpeakers found: {speakers}")
 
-# anonmyze speakers
+# STEP 2: Anonymize speakers
+print("\n" + "=" * 60)
+print("STEP 2: Anonymizing speakers")
+print("=" * 60)
+
 map = i.anonymize_speakers_generic()
-print("\nSpeaker anonymization - Mapping:")
+print("\nSpeaker mapping:")
 for original, anon in map.items():
-    print(f"  {original} -> {anon}")
+    print(f"  {original} → {anon}")
 
-# let's see how it looks like
+print("\nTranscript after anonymization:")
 i.show(10)
 
-# let's find stuff we should hide eventually
-print("\nDetecting entities:")
+# STEP 3: Detect and anonymize entities
+print("\n" + "=" * 60)
+print("STEP 3: Detecting entities (PERSON, ORG, GPE)")
+print("=" * 60)
+
 entities = i.detect_entities()
-print(entities)
+print(f"\nDetected {len(entities)} unique entities:")
+for e in entities:
+    print(f"  • '{e['entity']}' ({e['label']}) in rows {e['rows']}")
 
-# let's see how it looks if we replaced everything we found
-print("\nDefault replacements:")
+print("\nBuilding replacement map:")
 replacements = i.build_replacement_map(entities)
-print(replacements)
-choice = input("Use as replacements [Y/n]: ").strip().lower()
-if choice == 'n':
+print(f"Generated {len(replacements)} replacements:")
+for orig, repl in replacements.items():
+    print(f"  '{orig}' → '{repl}'")
 
-    # let's go through it and ask the user what they want to do
-    print("\nSelect replacements manually:")
+choice = input("\nUse default replacements? [Y/n]: ").strip().lower()
+if choice == 'n':
+    print("\n--- Manual replacement selection ---")
     counters = {"PERSON": 0, "ORG": 0, "GPE": 0}
     for e in entities:
         entity, label, rows = e["entity"], e["label"], e["rows"]
@@ -88,42 +103,53 @@ if choice == 'n':
         else:
             print(f"⏩ Skipping '{entity}'")
 
-    print(f"\nManual replacements: \n {replacements}")
+    print(f"\nFinal replacements ({len(replacements)} items):")
+    for orig, repl in replacements.items():
+        print(f"  '{orig}' → '{repl}'")
 
-# ok, let's do this and anonymize the statements too
-print("\nAnonnymizing statements:")
+print("\nApplying entity replacements to transcript...")
 i.anonymize_statements(replacements)
+print(f"✅ Anonymized {len(replacements)} entities")
 
-# let's see how it looks like
+print("\nTranscript after entity anonymization:")
 i.show(10)
 
+# STEP 4: Identify interviewee
+print("\n" + "=" * 60)
+print("STEP 4: Identifying interviewee using AI")
+print("=" * 60)
 
-# use heuristics and AI to find interviewee
-print("\nIdentifying interviewee:")
 result = i.identify_interviewee(m)
 identification = result.result
-interviewee = identification.interviewee
-print(f"Interviewee: {identification.interviewee}")
+
+print(f"\nIdentified interviewee: {identification.interviewee}")
 print(f"Confidence: {identification.confidence}")
 print(f"Explanation: {identification.explanation}")
-print(f"QIndex:", str(result.validation))
+print(f"\nQIndex: \n{result.validation}")
 
 
-# rename the interviewee to pa participant name, e.g. P5
-print("\nRenaming interviewee:")
+# STEP 5: Rename interviewee to participant ID
+print("\n" + "=" * 60)
+print("STEP 5: Renaming interviewee to participant ID")
+print("=" * 60)
+
+interviewee = identification.interviewee
 map = i.rename_speaker(interviewee, participant_id)
-print(map)
+print(f"\nRenamed: {interviewee} → {participant_id}")
 
-# let's see how it looks like
+print("\nFinal transcript:")
 i.show(10)
 
-# show the object
-print("\nInterview:")
-print(i)
+print(f"\nInterview summary: {i}")
 
 
-# export as an xlsx 
-print("\nExporting as: " + str(export_file))
+# STEP 6: Export interview
+print("\n" + "=" * 60)
+print("STEP 6: Exporting interview")
+print("=" * 60)
+
+print(f"\nExporting to: {export_file}")
 i.to_xlsx(export_file, include_enriched=False)
+print(f"✅ Successfully exported interview")
 
 
