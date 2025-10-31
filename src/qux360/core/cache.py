@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from .interview import Interview
 
 from .models import TopicList
-from .iffy import IffyIndex
+from .qindex import QIndex
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +89,7 @@ def save_interview_state(interview: 'Interview', cache_path: Optional[Path] = No
             raise ValueError("Interview has no file_path and no cache_path provided")
         cache_path = _get_cache_path(Path(interview.file_path))
 
-    # Serialize topics_top_down (TopicList) and validation (IffyIndex)
+    # Serialize topics_top_down (TopicList) and validation (QIndex)
     topics_data = None
     if interview.topics_top_down:
         topics_data = interview.topics_top_down.model_dump()
@@ -172,7 +172,7 @@ def load_interview_state(cache_path: Path, validate_source: bool = True) -> 'Int
 
     # Reconstruct validation if present
     if state.get('topics_top_down_validation'):
-        interview.topics_top_down_validation = IffyIndex.from_dict(state['topics_top_down_validation'])
+        interview.topics_top_down_validation = QIndex.from_dict(state['topics_top_down_validation'])
     else:
         interview.topics_top_down_validation = None
 

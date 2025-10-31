@@ -36,7 +36,7 @@ load_dotenv()
 
 ROOT_DIR = Path.cwd()
 data_dir = ROOT_DIR.joinpath("examples/data")
-interview_files = [data_dir.joinpath("interview_A.csv"), data_dir.joinpath("interview_C.csv")]
+interview_files = [data_dir.joinpath("interview_A.csv"), data_dir.joinpath("interview_B.csv"), data_dir.joinpath("interview_C.csv")]
 
 m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID")))
 

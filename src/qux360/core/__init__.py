@@ -11,14 +11,14 @@ logging.getLogger('qux360').setLevel(logging.WARNING)
 # Note: MelleaSession resets this to DEBUG, so examples re-set it after instantiation
 logging.getLogger('fancy_logger').setLevel(logging.WARNING)
 
-from .iffy import IffyIndex
+from .qindex import QIndex
 from .validated import Validated, ValidatedList
 from .interview import Interview
 from .study import Study
 from .models import Topic, TopicList, Quote
 
 __all__ = [
-    "IffyIndex",
+    "QIndex",
     "Validated",
     "ValidatedList",
     "Interview",

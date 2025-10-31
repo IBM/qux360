@@ -3,7 +3,7 @@ from typing import TypeVar, Generic, List
 import textwrap
 import logging
 
-from .iffy import IffyIndex, STATUS_EMOJIS
+from .qindex import QIndex, STATUS_EMOJIS
 
 
 T = TypeVar('T')
@@ -23,7 +23,7 @@ class Validated(Generic[T]):
     ----------
     result : T
         The actual AI-generated result
-    validation : IffyIndex
+    validation : QIndex
         Validation assessment with status and explanation
 
     Examples
@@ -31,13 +31,13 @@ class Validated(Generic[T]):
     >>> # Simple validated result
     >>> result = Validated(
     ...     result="Speaker1",
-    ...     validation=IffyIndex(status="ok", explanation="High confidence")
+    ...     validation=QIndex(status="ok", explanation="High confidence")
     ... )
     >>> if result.passed_validation():
     ...     print(f"Interviewee: {result.result}")
     """
     result: T
-    validation: IffyIndex
+    validation: QIndex
 
     def passed_validation(self) -> bool:
         """
@@ -106,9 +106,9 @@ class ValidatedList(Validated[List[T]]):
     ----------
     result : List[T]
         List of AI-generated results
-    validation : IffyIndex
+    validation : QIndex
         Overall validation assessment for the entire list
-    item_validations : List[IffyIndex]
+    item_validations : List[QIndex]
         Per-item validation assessments (same length as result)
 
     Examples
@@ -116,18 +116,18 @@ class ValidatedList(Validated[List[T]]):
     >>> # Validated list with per-item assessments
     >>> result = ValidatedList(
     ...     result=[topic1, topic2, topic3],
-    ...     validation=IffyIndex(status="check", explanation="1/3 needs review"),
+    ...     validation=QIndex(status="check", explanation="1/3 needs review"),
     ...     item_validations=[
-    ...         IffyIndex(status="ok", explanation="All quotes validated"),
-    ...         IffyIndex(status="check", explanation="1 quote mismatch"),
-    ...         IffyIndex(status="ok", explanation="All quotes validated")
+    ...         QIndex(status="ok", explanation="All quotes validated"),
+    ...         QIndex(status="check", explanation="1 quote mismatch"),
+    ...         QIndex(status="ok", explanation="All quotes validated")
     ...     ]
     ... )
     >>> good_topics = result.ok_items
     >>> for topic, iffy in result.items_with_validations():
     ...     print(f"{topic.name}: {iffy.status}")
     """
-    item_validations: List[IffyIndex] = field(default_factory=list)
+    item_validations: List[QIndex] = field(default_factory=list)
 
     def __post_init__(self):
         """
@@ -199,13 +199,13 @@ class ValidatedList(Validated[List[T]]):
         """
         return self.filter_by_status("check", "iffy")
 
-    def items_with_validations(self) -> List[tuple[T, IffyIndex]]:
+    def items_with_validations(self) -> List[tuple[T, QIndex]]:
         """
         Return list of (item, validation) tuples for easy iteration.
 
         Returns
         -------
-        List[tuple[T, IffyIndex]]
+        List[tuple[T, QIndex]]
             Zipped pairs of items and their corresponding validations
 
         Raises

@@ -39,7 +39,7 @@ The cache is stored in `.qux360_cache/interview_A_state.json` next to the source
 - `speaker_mapping` (rename history)
 - `metadata` (including participant_id)
 - `topics_top_down` (TopicList - the extracted topics)
-- `topics_top_down_validation` (IffyIndex - overall validation with nested per-topic validations)
+- `topics_top_down_validation` (QIndex - overall validation with nested per-topic validations)
 - Source file hash (for invalidation)
 
 **For Studies:**

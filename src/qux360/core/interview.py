@@ -12,7 +12,7 @@ from datetime import datetime
 
 from mellea import MelleaSession
 from mellea.stdlib.sampling import RejectionSamplingStrategy
-from qux360.core import IffyIndex
+from qux360.core import QIndex
 from qux360.core import Validated, ValidatedList
 from qux360.core.utils import print_mellea_validations
 import copy
@@ -247,7 +247,7 @@ class Interview:
         if self.transcript.empty or 'speaker' not in self.transcript:
             return Validated(
                 result=None,
-                validation=IffyIndex.from_check(
+                validation=QIndex.from_check(
                     method="data_check",
                     status="iffy",
                     explanation="Transcript is empty or missing 'speaker' column"
@@ -274,7 +274,7 @@ class Interview:
         else:
             heuristic_status = "iffy"
 
-        heuristic_check = IffyIndex.from_check(
+        heuristic_check = QIndex.from_check(
             method="heuristic",
             status=heuristic_status,
             explanation=f"{predicted_heuristic} has {ratio:.0%} of words",
@@ -328,7 +328,7 @@ class Interview:
                     llm_status = "iffy"
                     llm_explanation = f"LLM disagreed (suggested {predicted_llm}), low confidence ({ratio:.0%})"
 
-            llm_check = IffyIndex.from_check(
+            llm_check = QIndex.from_check(
                 method="llm",
                 status=llm_status,
                 explanation=llm_explanation,
@@ -337,7 +337,7 @@ class Interview:
             checks.append(llm_check)
 
         # Aggregate validation checks
-        overall_validation = IffyIndex.from_checks(checks, aggregation="consensus")
+        overall_validation = QIndex.from_checks(checks, aggregation="consensus")
 
         # Metadata update only if validation passed
         if overall_validation.status in ("ok", "check"):
@@ -577,7 +577,7 @@ class Interview:
                 f"  Statement: \"{statement_text[:80]}...\""
             )
 
-    def _validate_topic(self, topic, m: MelleaSession, interview_context: str) -> IffyIndex:
+    def _validate_topic(self, topic, m: MelleaSession, interview_context: str) -> QIndex:
         """
         Validate a single topic based on quote validation, LLM quality check, and assessment.
 
@@ -592,7 +592,7 @@ class Interview:
 
         Returns
         -------
-        IffyIndex
+        QIndex
             Aggregated validation result for this topic
         """
         checks = []
@@ -605,20 +605,20 @@ class Interview:
                 quote_errors.append(err)
 
         if not quote_errors:
-            checks.append(IffyIndex.from_check(
+            checks.append(QIndex.from_check(
                 method="quote_validation",
                 status="ok",
                 explanation=f"All {len(topic.quotes)} quotes validated successfully"
             ))
         elif len(quote_errors) < len(topic.quotes):
-            checks.append(IffyIndex.from_check(
+            checks.append(QIndex.from_check(
                 method="quote_validation",
                 status="check",
                 explanation=f"{len(quote_errors)}/{len(topic.quotes)} quotes failed validation",
                 errors=quote_errors
             ))
         else:
-            checks.append(IffyIndex.from_check(
+            checks.append(QIndex.from_check(
                 method="quote_validation",
                 status="iffy",
                 explanation=f"All {len(topic.quotes)} quotes failed validation",
@@ -664,7 +664,7 @@ class Interview:
             # Parse LLM rating using utility function
             llm_status, llm_explanation = parse_quality_rating(llm_rating)
 
-            checks.append(IffyIndex.from_check(
+            checks.append(QIndex.from_check(
                 method="llm_validation",
                 status=llm_status,
                 explanation=llm_explanation
@@ -672,7 +672,7 @@ class Interview:
 
         except Exception as e:
             logger.warning(f"LLM quality validation failed for topic '{topic.topic}': {str(e)}")
-            checks.append(IffyIndex.from_check(
+            checks.append(QIndex.from_check(
                 method="llm_validation",
                 status="check",
                 explanation=f"Quality validation failed - manual review required: {str(e)}"
@@ -730,7 +730,7 @@ class Interview:
             }
 
             # Create informational check (doesn't affect validation status)
-            checks.append(IffyIndex.from_check(
+            checks.append(QIndex.from_check(
                 method="llm_assessment",
                 status="ok",  # Status is irrelevant since informational=True
                 explanation=f"Strengths: {strengths[:60]}... | Weaknesses: {weaknesses[:60]}...",
@@ -743,29 +743,29 @@ class Interview:
             # Don't add a check if assessment fails - it's purely informational
 
         # Aggregate all checks (only non-informational checks affect status)
-        return IffyIndex.from_checks(checks, aggregation="strictest")
+        return QIndex.from_checks(checks, aggregation="strictest")
 
-    def _aggregate_topic_validations(self, topic_validations: list[IffyIndex]) -> IffyIndex:
+    def _aggregate_topic_validations(self, topic_validations: list[QIndex]) -> QIndex:
         """
         Aggregate per-topic validations into overall validation.
 
         Parameters
         ----------
-        topic_validations : list[IffyIndex]
+        topic_validations : list[QIndex]
             Per-topic validation results
 
         Returns
         -------
-        IffyIndex
+        QIndex
             Overall validation result
         """
         if topic_validations:
-            return IffyIndex.from_checks(
+            return QIndex.from_checks(
                 topic_validations,
                 aggregation="consensus"
             )
         else:
-            return IffyIndex.from_check(
+            return QIndex.from_check(
                 method="generation",
                 status="iffy",
                 explanation="No topics were generated"
@@ -802,7 +802,7 @@ class Interview:
         if df.empty:
             return ValidatedList(
                 result=[],
-                validation=IffyIndex.from_check(
+                validation=QIndex.from_check(
                     method="data_check",
                     status="iffy",
                     explanation="Transcript is empty"
@@ -814,7 +814,7 @@ class Interview:
         if "participant_id" not in self.metadata:
             return ValidatedList(
                 result=[],
-                validation=IffyIndex.from_check(
+                validation=QIndex.from_check(
                     method="data_check",
                     status="iffy",
                     explanation="Missing participant_id in metadata (required for thematic analysis)"
@@ -924,7 +924,7 @@ class Interview:
             # Parse error - return empty ValidatedList with iffy status
             return ValidatedList(
                 result=[],
-                validation=IffyIndex.from_check(
+                validation=QIndex.from_check(
                     method="parsing",
                     status="iffy",
                     explanation=f"Could not parse LLM output: {str(e)}",
@@ -987,7 +987,7 @@ class Interview:
             return None
 
         # Default validation if none cached
-        validation = self.topics_top_down_validation or IffyIndex.from_check(
+        validation = self.topics_top_down_validation or QIndex.from_check(
             method="cache",
             status="ok",
             explanation="Loaded from cache (no validation stored)"

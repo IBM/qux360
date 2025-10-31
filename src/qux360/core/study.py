@@ -7,7 +7,7 @@ from datetime import datetime
 from .interview import Interview
 from .models import ThemeList, TopicList, CoherenceAssessment
 from .validated import Validated, ValidatedList
-from .iffy import IffyIndex
+from .qindex import QIndex
 from .utils import print_mellea_validations, parse_coherence_rating
 from mellea import MelleaSession
 from mellea.stdlib.sampling import RejectionSamplingStrategy
@@ -206,7 +206,7 @@ class Study:
             f"metadata={self.metadata}>"
         )
 
-    def _aggregate_theme_validations(self, theme_validations: List[IffyIndex]) -> IffyIndex:
+    def _aggregate_theme_validations(self, theme_validations: List[QIndex]) -> QIndex:
         """
         Aggregate per-theme validations using consensus with escalation.
 
@@ -215,23 +215,23 @@ class Study:
 
         Parameters
         ----------
-        theme_validations : List[IffyIndex]
+        theme_validations : List[QIndex]
             Per-theme validation results
 
         Returns
         -------
-        IffyIndex
+        QIndex
             Overall validation with detailed status counts in explanation
         """
         if not theme_validations:
-            return IffyIndex.from_check(
+            return QIndex.from_check(
                 method="generation",
                 status="iffy",
                 explanation="No themes were generated"
             )
 
         # Get consensus result
-        consensus_result = IffyIndex.from_checks(
+        consensus_result = QIndex.from_checks(
             theme_validations,
             aggregation="consensus"
         )
@@ -263,13 +263,13 @@ class Study:
             if status_counts['iffy'] > 0:
                 explanation += f", {status_counts['iffy']} have issues"
 
-        return IffyIndex.from_check(
+        return QIndex.from_check(
             method="theme_validation_summary",
             status=final_status,
             explanation=explanation
         )
 
-    def _validate_theme(self, theme, hydration_result: dict, m: MelleaSession, study_context: str) -> IffyIndex:
+    def _validate_theme(self, theme, hydration_result: dict, m: MelleaSession, study_context: str) -> QIndex:
         """
         Validate a single theme based on hydration, coverage, and LLM assessment.
 
@@ -288,20 +288,20 @@ class Study:
 
         Returns
         -------
-        IffyIndex
+        QIndex
             Aggregated validation result for this theme
         """
         checks = []
 
         # Check 1: Topic hydration success
         if hydration_result["failed"]:
-            checks.append(IffyIndex.from_check(
+            checks.append(QIndex.from_check(
                 method="topic_hydration",
                 status="check",
                 explanation=f"{len(hydration_result['failed'])}/{hydration_result['total']} topics failed to hydrate: {', '.join(hydration_result['failed'])}"
             ))
         else:
-            checks.append(IffyIndex.from_check(
+            checks.append(QIndex.from_check(
                 method="topic_hydration",
                 status="ok",
                 explanation=f"All {hydration_result['total']} topics successfully hydrated"
@@ -310,13 +310,13 @@ class Study:
         # Check 2: Cross-interview coverage
         interview_ids = set(t.interview_id for t in theme.topics if t.interview_id)
         if len(interview_ids) >= 2:
-            checks.append(IffyIndex.from_check(
+            checks.append(QIndex.from_check(
                 method="cross_interview_coverage",
                 status="ok",
                 explanation=f"Theme spans {len(interview_ids)} interviews"
             ))
         else:
-            checks.append(IffyIndex.from_check(
+            checks.append(QIndex.from_check(
                 method="cross_interview_coverage",
                 status="iffy",
                 explanation=f"Theme only spans {len(interview_ids)} interview(s)"
@@ -324,13 +324,13 @@ class Study:
 
         # Check 3: Minimum topic count
         if len(theme.topics) >= 2:
-            checks.append(IffyIndex.from_check(
+            checks.append(QIndex.from_check(
                 method="topic_count",
                 status="ok",
                 explanation=f"Theme has {len(theme.topics)} supporting topics"
             ))
         else:
-            checks.append(IffyIndex.from_check(
+            checks.append(QIndex.from_check(
                 method="topic_count",
                 status="check",
                 explanation=f"Theme has only {len(theme.topics)} supporting topic(s)"
@@ -405,7 +405,7 @@ class Study:
                 logger.warning(f"Unexpected coherence rating for theme '{theme.title}': {coherence_result.rating}")
 
             # Create required coherence check
-            coherence_check = IffyIndex.from_check(
+            coherence_check = QIndex.from_check(
                 method="llm_coherence",
                 status=status,
                 explanation=status_explanation
@@ -415,14 +415,14 @@ class Study:
         except Exception as e:
             logger.warning(f"LLM coherence assessment failed for theme '{theme.title}': {str(e)}")
             # If LLM fails, add a "check" status (requires manual review)
-            checks.append(IffyIndex.from_check(
+            checks.append(QIndex.from_check(
                 method="llm_coherence",
                 status="check",
                 explanation=f"Coherence assessment failed - manual review required: {str(e)}"
             ))
 
         # Aggregate all checks (only non-informational checks affect status)
-        return IffyIndex.from_checks(checks, aggregation="strictest")
+        return QIndex.from_checks(checks, aggregation="strictest")
 
     def _hydrate_theme_topics(
         self,
@@ -815,7 +815,7 @@ class Study:
 
         except Exception as e:
             logger.error(f"Theme generation failed: {str(e)}")
-            validation = IffyIndex.from_check(
+            validation = QIndex.from_check(
                 method="theme_generation",
                 status="iffy",
                 explanation=f"Failed to generate themes: {str(e)}"
