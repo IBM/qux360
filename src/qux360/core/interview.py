@@ -12,8 +12,8 @@ from datetime import datetime
 
 from mellea import MelleaSession
 from mellea.stdlib.sampling import RejectionSamplingStrategy
-from qux360.core.iffy import IffyIndex
-from qux360.core.validated import Validated, ValidatedList
+from qux360.core import IffyIndex
+from qux360.core import Validated, ValidatedList
 from qux360.core.utils import print_mellea_validations
 import copy
 

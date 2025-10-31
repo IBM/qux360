@@ -27,7 +27,7 @@ Qux360 can be used in two ways:
 
 ---
 
-### 1. Users (PyPI, coming soon)
+### 1. Users (PyPI)
 
 Once published, install with pip:  
 
@@ -38,7 +38,7 @@ pip install qux360
 Example:  
 
 ```python
-from qux360.core.interview import Interview
+from qux360.core import Interview
 
 i = Interview("my_transcript.docx")
 i.show()
@@ -126,7 +126,7 @@ python examples/interview_basics.py
 ## 🚀 Quickstart Example
 
 ```python
-from qux360.core.interview import Interview
+from qux360.core import Interview
 
 # Load a transcript (DOCX, XLSX, or CSV)
 i = Interview("examples/data/interview_A.docx")
@@ -145,7 +145,7 @@ i.to_xlsx("output_transcript.xlsx", include_enriched=False)
 ## 🤖 Quickstart: Anonymization & Interviewee Identification
 
 ```python
-from qux360.core.interview import Interview
+from qux360.core import Interview
 
 # Load a transcript
 i = Interview("examples/data/interview_A.xlsx")
