@@ -64,8 +64,11 @@ print("\n" + "=" * 60)
 print("STEP 2: Identifying interviewee")
 print("=" * 60)
 
-result = i.identify_interviewee()
-print(f"\nInterview participant: {result.result}")
+result = i.identify_interviewee(m)
+identification = result.result
+print(f"\nInterview participant: {identification.interviewee}")
+print(f"Confidence: {identification.confidence}")
+print(f"Explanation: {identification.explanation}")
 print(f"Validation: {result.validation.status} - {result.validation.explanation}")
 
 # STEP 3: Extract topics

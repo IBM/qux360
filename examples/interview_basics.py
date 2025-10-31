@@ -20,7 +20,7 @@ file = data_dir.joinpath("interview_A.xlsx")
 export_file = data_dir.joinpath("interview_A_exported.xlsx")
 config_file = ROOT_DIR.joinpath("examples/config.json")
 
-m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID")))
+m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID"))) # type: ignore
 
 # Suppress Mellea's FancyLogger (MelleaSession resets it to DEBUG, so we set it here)
 logging.getLogger('fancy_logger').setLevel(logging.WARNING)
@@ -101,9 +101,13 @@ i.show(10)
 # use heuristics and AI to find interviewee
 print("\nIdentifying interviewee:")
 result = i.identify_interviewee(m)
-interviewee = result.result
-print(f"Interviewee: {interviewee}")
-print(f"Validation:", str(result.validation))
+identification = result.result
+interviewee = identification.interviewee
+print(f"Interviewee: {identification.interviewee}")
+print(f"Confidence: {identification.confidence}")
+print(f"Explanation: {identification.explanation}")
+print(f"QIndex:", str(result.validation))
+
 
 # rename the interviewee to pa participant name, e.g. P5
 print("\nRenaming interviewee:")
