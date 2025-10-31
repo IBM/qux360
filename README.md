@@ -171,12 +171,12 @@ print("Predicted interviewee:", interviewee)
 ## ✏️ Contributing
 
 You can contribute to:
-* Qux360. Look at the [Contribution Guidelines](CONTRIBUTING.md) for more details.
+* Qux360. Look at the [Contribution Guidelines](https://github.com/IBM/qux360/blob/main/CONTRIBUTING.md) for more details.
 * [Mellea](https://mellea.ai/). Look at the [Contribution Guidelines](https://github.com/generative-computing/mellea/blob/main/docs/tutorial.md#appendix-contributing-to-mellea) for more details.
 
 ## 📚 Documentation
 
-You can find extensive documentation of the system and the API usage in the [Documentation page](../../wiki).
+You can find extensive documentation of the system and the API usage in the [Documentation page](https://github.com/IBM/qux360/wiki).
 
 
 ## 📜 License  
