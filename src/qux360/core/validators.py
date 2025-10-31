@@ -9,7 +9,7 @@ Example
 -------
 >>> from qux360.core.validators import HeuristicAgreementValidator
 >>> validator = HeuristicAgreementValidator(ok_threshold=0.60)
->>> validation = validator.validate(identification, transcript)
+>>> validation = validator.validate("Speaker1", transcript)
 >>> print(validation.status)  # "ok", "check", or "iffy"
 """
 
@@ -19,7 +19,6 @@ import pandas as pd
 import logging
 
 from .qindex import QIndex
-from .models import IntervieweeIdentification
 from .utils import extract_mellea_validation_status
 
 
@@ -174,25 +173,29 @@ class MelleaRequirementsValidator(BaseValidator):
 
 class HeuristicAgreementValidator(BaseValidator):
     """
-    Validator that compares LLM identification with word count heuristic.
+    Validator that compares a predicted speaker with word count heuristic.
 
     This validator calculates which speaker has the most words (typically
-    the interviewee) and compares it with the LLM's identification result.
+    the interviewee) and compares it with a predicted speaker.
     The validation status depends on agreement and word ratio thresholds.
+
+    This is a generic validator that can validate any speaker prediction,
+    not just from interviewee identification.
 
     Parameters
     ----------
     ok_threshold : float, default=0.60
-        Minimum word ratio for "ok" status when LLM agrees with heuristic
+        Minimum word ratio for "ok" status when prediction agrees with heuristic
     check_threshold : float, default=0.50
-        Minimum word ratio for "check" status when LLM agrees with heuristic
+        Minimum word ratio for "check" status when prediction agrees with heuristic
 
     Examples
     --------
+    >>> # For interviewee identification
     >>> validator = HeuristicAgreementValidator(ok_threshold=0.60)
-    >>> validation = validator.validate(identification, transcript)
+    >>> validation = validator.validate("Speaker1", transcript)
     >>> if validation.status == "ok":
-    ...     print("LLM agrees with word count heuristic")
+    ...     print("Prediction agrees with word count heuristic")
     """
 
     def __init__(self, ok_threshold: float = 0.60, check_threshold: float = 0.50):
@@ -203,14 +206,14 @@ class HeuristicAgreementValidator(BaseValidator):
     def method_name(self) -> str:
         return "heuristic_agreement"
 
-    def validate(self, identification: IntervieweeIdentification, transcript: pd.DataFrame) -> QIndex:
+    def validate(self, predicted_speaker: str, transcript: pd.DataFrame) -> QIndex:
         """
-        Validate identification against word count heuristic.
+        Validate speaker prediction against word count heuristic.
 
         Parameters
         ----------
-        identification : IntervieweeIdentification
-            LLM's identification result
+        predicted_speaker : str
+            The predicted speaker ID to validate
         transcript : pd.DataFrame
             Interview transcript with 'speaker' and 'statement' columns
 
@@ -229,34 +232,32 @@ class HeuristicAgreementValidator(BaseValidator):
         total_words = counts.sum()
         heuristic_ratio = counts[predicted_heuristic] / total_words if total_words > 0 else 0.0
 
-        # Get word ratio for LLM's prediction
-        llm_word_ratio = counts.get(identification.interviewee, 0) / total_words if total_words > 0 else 0.0
+        # Get word ratio for predicted speaker
+        predicted_word_ratio = counts.get(predicted_speaker, 0) / total_words if total_words > 0 else 0.0
 
         # Check agreement
-        agrees = identification.interviewee == predicted_heuristic
+        agrees = predicted_speaker == predicted_heuristic
 
         # Determine validation status
         if agrees and heuristic_ratio >= self.ok_threshold:
-            # LLM agrees with heuristic and speaker has >threshold% of words
+            # Prediction agrees with heuristic and speaker has >threshold% of words
             status = "ok"
-            explanation = f"Heuristic agrees with LLM: {identification.interviewee} has {heuristic_ratio:.0%} of words"
+            explanation = f"Heuristic agrees with prediction: {predicted_speaker} has {heuristic_ratio:.0%} of words"
         elif agrees and heuristic_ratio >= self.check_threshold:
-            # LLM agrees with heuristic but word ratio is moderate
+            # Prediction agrees with heuristic but word ratio is moderate
             status = "check"
-            explanation = f"Heuristic agrees with LLM but word ratio is moderate: {heuristic_ratio:.0%}"
+            explanation = f"Heuristic agrees with prediction but word ratio is moderate: {heuristic_ratio:.0%}"
         else:
-            # LLM disagrees with heuristic
+            # Prediction disagrees with heuristic
             status = "iffy"
             explanation = (
-                f"LLM identified {identification.interviewee} ({llm_word_ratio:.0%} of words) "
+                f"Prediction: {predicted_speaker} ({predicted_word_ratio:.0%} of words) "
                 f"but heuristic suggests {predicted_heuristic} ({heuristic_ratio:.0%})"
             )
 
         metadata = {
-            "llm_prediction": identification.interviewee,
-            "llm_confidence": identification.confidence,
-            "llm_explanation": identification.explanation,
-            "llm_word_ratio": llm_word_ratio,
+            "predicted_speaker": predicted_speaker,
+            "predicted_word_ratio": predicted_word_ratio,
             "heuristic_prediction": predicted_heuristic,
             "heuristic_word_ratio": heuristic_ratio,
             "agreement": agrees,

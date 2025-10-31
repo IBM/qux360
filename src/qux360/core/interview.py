@@ -338,7 +338,7 @@ class Interview:
                 ok_threshold=0.60,
                 check_threshold=0.50
             )
-            heuristic_check = heuristic_validator.validate(identification, self.transcript)
+            heuristic_check = heuristic_validator.validate(identification.interviewee, self.transcript)
 
             # Aggregate both validators
             overall_validation = QIndex.from_checks(
