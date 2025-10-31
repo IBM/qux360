@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from .interview import Interview
 
 from .models import TopicList
-from .iffy import IffyIndex
+from .iffy import QIndex
 
 logger = logging.getLogger(__name__)
 
@@ -172,7 +172,7 @@ def load_interview_state(cache_path: Path, validate_source: bool = True) -> 'Int
 
     # Reconstruct validation if present
     if state.get('topics_top_down_validation'):
-        interview.topics_top_down_validation = IffyIndex.from_dict(state['topics_top_down_validation'])
+        interview.topics_top_down_validation = QIndex.from_dict(state['topics_top_down_validation'])
     else:
         interview.topics_top_down_validation = None
 

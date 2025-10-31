@@ -3,7 +3,7 @@ from typing import TypeVar, Generic, List
 import textwrap
 import logging
 
-from .iffy import IffyIndex, STATUS_EMOJIS
+from .iffy import QIndex, STATUS_EMOJIS
 
 
 T = TypeVar('T')
@@ -37,7 +37,7 @@ class Validated(Generic[T]):
     ...     print(f"Interviewee: {result.result}")
     """
     result: T
-    validation: IffyIndex
+    validation: QIndex
 
     def passed_validation(self) -> bool:
         """
@@ -127,7 +127,7 @@ class ValidatedList(Validated[List[T]]):
     >>> for topic, iffy in result.items_with_validations():
     ...     print(f"{topic.name}: {iffy.status}")
     """
-    item_validations: List[IffyIndex] = field(default_factory=list)
+    item_validations: List[QIndex] = field(default_factory=list)
 
     def __post_init__(self):
         """
@@ -199,7 +199,7 @@ class ValidatedList(Validated[List[T]]):
         """
         return self.filter_by_status("check", "iffy")
 
-    def items_with_validations(self) -> List[tuple[T, IffyIndex]]:
+    def items_with_validations(self) -> List[tuple[T, QIndex]]:
         """
         Return list of (item, validation) tuples for easy iteration.
 

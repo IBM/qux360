@@ -6,7 +6,7 @@ from typing import Literal, List, Optional, Dict
 STATUS_EMOJIS = {"ok": "✅", "check": "⚠️", "iffy": "❌"}
 
 @dataclass
-class IffyIndex:
+class QIndex:
     """
     Validation result that can represent both individual checks and aggregated results.
 
@@ -37,7 +37,7 @@ class IffyIndex:
     errors: List[str] = field(default_factory=list)
     method: Optional[str] = None
     metadata: Optional[Dict] = None
-    checks: List[IffyIndex] = field(default_factory=list)
+    checks: List[QIndex] = field(default_factory=list)
     informational: bool = False
 
     @classmethod
@@ -49,7 +49,7 @@ class IffyIndex:
         errors: Optional[List[str]] = None,
         metadata: Optional[Dict] = None,
         informational: bool = False
-    ) -> IffyIndex:
+    ) -> QIndex:
         """
         Create an IffyIndex representing a single validation check.
 
@@ -86,9 +86,9 @@ class IffyIndex:
     @classmethod
     def from_checks(
         cls,
-        checks: List[IffyIndex],
+        checks: List[QIndex],
         aggregation: str = "strictest"
-    ) -> IffyIndex:
+    ) -> QIndex:
         """
         Aggregate multiple IffyIndex results into a composite result.
 
@@ -161,7 +161,7 @@ class IffyIndex:
         """Check if this is an aggregated result (has nested checks)."""
         return len(self.checks) > 0
 
-    def get_check(self, method: str) -> Optional[IffyIndex]:
+    def get_check(self, method: str) -> Optional[QIndex]:
         """
         Get a specific validation check by method name.
 
@@ -220,7 +220,7 @@ class IffyIndex:
         return d
 
     @classmethod
-    def from_dict(cls, d: dict) -> 'IffyIndex':
+    def from_dict(cls, d: dict) -> 'QIndex':
         """
         Reconstruct IffyIndex from dictionary representation.
 

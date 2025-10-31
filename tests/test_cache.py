@@ -206,7 +206,7 @@ class TestAutomaticCaching:
     def test_validation_results_are_cached(self, tmp_path):
         """Test that topic validation results are cached and restored."""
         from qux360.core import TopicList, Topic, Quote
-        from qux360.core import IffyIndex
+        from qux360.core import QIndex
 
         # Create an interview
         interview = Interview()
@@ -224,7 +224,7 @@ class TestAutomaticCaching:
             ]
         )
 
-        interview.topics_top_down_validation = IffyIndex.from_check(
+        interview.topics_top_down_validation = QIndex.from_check(
             method="test_validation",
             status="ok",
             explanation="All topics validated successfully"
