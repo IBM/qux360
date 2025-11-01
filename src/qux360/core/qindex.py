@@ -189,8 +189,15 @@ class QIndex:
         return errors
 
     def icon(self) -> str:
-        """Get emoji icon representing the validation status."""
-        return STATUS_EMOJIS[self.status]
+        """
+        Get emoji icon representing the validation status.
+
+        Informational checks use 'ℹ️' prefix to indicate they don't affect overall validation.
+        """
+        base_icon = STATUS_EMOJIS[self.status]
+        if self.informational:
+            return f"ℹ️  {base_icon}"
+        return base_icon
 
     def to_dict(self) -> dict:
         """
@@ -250,6 +257,8 @@ class QIndex:
         )
 
     def __str__(self) -> str:
+        import textwrap
+
         if self.method:
             # Individual check format
             base = f"{self.icon()} [{self.method}] {self.status} — {self.explanation}"
@@ -257,12 +266,21 @@ class QIndex:
             # Composite format
             base = f"{self.icon()} {self.status} — {self.explanation}"
 
+        # Wrap long lines with proper indentation
+        base = textwrap.fill(base, width=120, subsequent_indent="  ")
+
         if self.errors:
             error_detail = "\n    • " + "\n    • ".join(self.errors)
             base += error_detail
 
         if self.checks:
-            check_detail = "\n  " + "\n  ".join(str(c) for c in self.checks)
+            formatted_checks = []
+            for c in self.checks:
+                # Recursively format nested checks (they handle their own wrapping)
+                check_str = str(c)
+                formatted_checks.append("└─ " + check_str)
+
+            check_detail = "\n  " + "\n  ".join(formatted_checks)
             base += check_detail
 
         return base

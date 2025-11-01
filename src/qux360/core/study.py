@@ -155,13 +155,13 @@ class Study:
         dict
             Mapping of interview.id -> ValidatedList[Topic]
         """
-        logger.debug(f"Suggest topics for study {self.id}")
+        logger.info(f"Suggest topics for study {self.id}")
         context = interview_context or self.study_context
-        logger.debug(f"Extracting topics from {len(self.documents)} interviews with context: {context}")
+        logger.info(f"Extracting topics from {len(self.documents)} interviews with context: {context}")
 
         results = {}
         for idx, doc in enumerate(self.documents, start=1):
-            logger.debug(f"Processing interview {idx}/{len(self.documents)}: {doc.id}")
+            logger.info(f"Processing interview {idx}/{len(self.documents)}: {doc.id}")
             topics_result = doc.suggest_topics_top_down(
                 m,
                 n=n,
@@ -392,7 +392,8 @@ class Study:
             )
 
             # Print Mellea validations if available
-            print_mellea_validations(assessment, title=f"Coherence Check Validations for '{theme.title}'")
+            if logger.isEnabledFor(logging.DEBUG):
+                print_mellea_validations(assessment, title=f"Coherence Check Validations for '{theme.title}'")
 
             # Extract the validated CoherenceAssessment from the SamplingResult
             coherence_result = CoherenceAssessment.model_validate_json(assessment._underlying_value)
@@ -762,13 +763,14 @@ class Study:
                 format=ThemeList,
                 strategy=RejectionSamplingStrategy(loop_budget=1),
                 return_sampling_results=True
-            )
+            ) # type: ignore
 
             elapsed_time = time.time() - start_time
             logger.info(f"Mellea theme extraction completed in {elapsed_time:.2f} seconds")
 
             # Print validation results
-            print_mellea_validations(response, title="Theme Extraction Validations")
+            if logger.isEnabledFor(logging.DEBUG):
+                print_mellea_validations(response, title="Theme Extraction Validations")
 
             # Parse response
             theme_list = ThemeList.model_validate_json(response._underlying_value)

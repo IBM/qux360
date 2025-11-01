@@ -272,7 +272,7 @@ class ValidatedList(Validated[List[T]]):
 
             # Show abbreviated explanation
             if hasattr(item, 'explanation'):
-                explanation = item.explanation
+                explanation = item.explanation # type: ignore
                 if len(explanation) > 100:
                     explanation = explanation[:100] + "..."
                 print(f"   {explanation}")
@@ -283,9 +283,7 @@ class ValidatedList(Validated[List[T]]):
             if len(self.result) > 1:
                 print(f"\n   ... and {len(self.result) - 1} more {item_label.lower()}s")
 
-            print(f"\n{'='*60}")
-            print(f"Overall: {self.validation.status.upper()} - {self.validation.explanation}")
-            print(f"{'='*60}\n")
+            print(f"\n*** Overall: {self.validation.status.upper()} - {self.validation.explanation}")
             return
 
         # Full mode: Print per-item validation details
@@ -374,7 +372,5 @@ class ValidatedList(Validated[List[T]]):
                             wrapped_weaknesses = textwrap.fill(weaknesses, width=70, initial_indent="         - ", subsequent_indent="           ")
                             print(wrapped_weaknesses)
 
-        print(f"\n{'='*60}")
         status_emoji = STATUS_EMOJIS[self.validation.status]
-        print(f"Overall: {status_emoji} {self.validation.status.upper()} - {self.validation.explanation}")
-        print(f"{'='*60}\n")
+        print(f"*** Overall: {status_emoji} {self.validation.status.upper()} - {self.validation.explanation}")
