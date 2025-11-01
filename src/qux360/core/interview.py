@@ -891,7 +891,8 @@ class Interview:
         logger.debug(response)
 
         # Print validation results
-        print_mellea_validations(response, title="Topic Extraction Validations")
+        if logger.isEnabledFor(logging.DEBUG): 
+            print_mellea_validations(response, title="Topic Extraction Validations")
 
         try:
             topics = TopicList.model_validate_json(response._underlying_value)

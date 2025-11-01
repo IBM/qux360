@@ -66,10 +66,11 @@ print("=" * 60)
 
 result = i.identify_interviewee(m)
 identification = result.result
+print("*** AI Result ***")
 print(f"\nInterview participant: {identification.interviewee}")
-print(f"Confidence: {identification.confidence}")
+print(f"Self-Confidence: {identification.confidence}")
 print(f"Explanation: {identification.explanation}")
-print(f"Validation: {result.validation.status} - {result.validation.explanation}")
+print(f"\n*** QIndex ***: \n{result.validation}")
 
 # STEP 3: Extract topics
 print("\n" + "=" * 60)

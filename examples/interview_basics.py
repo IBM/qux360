@@ -122,10 +122,11 @@ print("=" * 60)
 result = i.identify_interviewee(m)
 identification = result.result
 
-print(f"\nIdentified interviewee: {identification.interviewee}")
+print("\n*** AI Result ***")
+print(f"Identified interviewee: {identification.interviewee}")
 print(f"Confidence: {identification.confidence}")
 print(f"Explanation: {identification.explanation}")
-print(f"\nQIndex: \n{result.validation}")
+print(f"\n*** QIndex ***: \n{result.validation}")
 
 
 # STEP 5: Rename interviewee to participant ID
