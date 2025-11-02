@@ -87,13 +87,25 @@ if needs_topic_extraction:
     print("=" * 60)
 
     # Identify interviewees
-    print("\n→ Step 1: Identifying interviewees...")
+    print("\n→ *** Step 1: Identifying interviewees...\n")
     results = study.identify_interviewees(m)
-    for interview_id, result in results.items():
-        print(f"   {interview_id}: {result.result} ({str(result.validation)})")
+
+    
+    for interview_id, validated_result in results.items():
+        identification = validated_result.result
+
+        print("\n*** AI Results ***")
+        print(f"\n  {interview_id}:")
+        print(f"    Interview participant: {identification.interviewee}")
+        print(f"    Self-Confidence: {identification.confidence}")
+        print(f"    Explanation: {identification.explanation}")
+        print(f"\n    *** QIndex ***:")
+        # Indent each line of the QIndex output
+        for line in str(validated_result.validation).split('\n'):
+            print(f"      {line}")
 
     # Extract topics (expensive!)
-    print("\n→ Step 2: Extracting topics from all interviews...")
+    print("\n→ *** Step 2: Extracting topics from all interviews...")
     topics_results = study.suggest_topics_all(m)
 
     for interview_id, topics_result in topics_results.items():
@@ -142,7 +154,7 @@ themes_result = study.suggest_themes(m)
 
 # Display themes using print_summary
 if themes_result and themes_result.result:
-    themes_result.print_summary(title="Thematic Analysis Results", item_label="Theme")
+    themes_result.print_summary(title="Thematic Analysis Results", item_label="Theme") # type: ignore
 else:
     print(f"⚠️ Theme extraction failed: {themes_result.validation.explanation if themes_result else 'No result'}")
 

@@ -21,11 +21,16 @@ file2 = data_dir.joinpath("interview_B.csv")
 file3 = data_dir.joinpath("interview_C.csv")
 config_file = ROOT_DIR.joinpath("examples/config.json")
 
-m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID")))
+m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID"))) # type: ignore
 
 # Suppress Mellea's FancyLogger (MelleaSession resets it to DEBUG, so we set it here)
 logging.getLogger('fancy_logger').setLevel(logging.WARNING)
 
+
+# STEP 1: Load study
+print("=" * 60)
+print("STEP 1: Loading study with multiple interviews")
+print("=" * 60)
 
 # [OPTION A] create an instance without headers config (has headers by default)
 study = Study([file1, file2, file3])
@@ -47,24 +52,56 @@ study = Study([file1, file2, file3], headers=[config['headers_study_1'], None, c
 #study = Study(files_or_docs=[i1, i2, i3])
 '''
 
-# compute all participants automatically (data is not anonymized yet)
-print("\nIdentifying interviewees across all interviews")
+print(f"\nLoaded study: {study}")
+print(f"Number of interviews: {len(study.documents)}")
+for idx, interview in enumerate(study.documents, start=1):
+    print(f"  {idx}. {interview.id}")
+
+# STEP 2: Identify interviewees
+print("\n" + "=" * 60)
+print("STEP 2: Identifying interviewees across all interviews")
+print("=" * 60)
+
 results = study.identify_interviewees(m)
-print(results)
 
-# anonymize the speakers across all interviews
-print("\nAnonymizing speakers across all interviews")
-results = study.anonymize_speakers()
-print(results)
+print(f"\n✅ Identified {len(results)} interviewees:")
+for interview_id, validated_result in results.items():
+    identification = validated_result.result
+    print(f"\n  {interview_id}:")
+    print(f"    Interviewee: {identification.interviewee}")
+    print(f"    Confidence: {identification.confidence}")
+    print(f"    Explanation: {identification.explanation}")
+    print(f"\n    QIndex:")
+    # Indent each line of the QIndex output
+    for line in str(validated_result.validation).split('\n'):
+        print(f"      {line}")
 
-# printing study summary
-print("\nThe study object:")
-print(study)
+# STEP 3: Anonymize speakers
+print("\n" + "=" * 60)
+print("STEP 3: Anonymizing speakers across all interviews")
+print("=" * 60)
 
-# iterate through all interviews
+mappings = study.anonymize_speakers()
+
+print(f"\n✅ Anonymized speakers across {len(mappings)} interviews:")
+for interview_id, mapping in mappings.items():
+    print(f"\n  {interview_id}:")
+    for original, anon in mapping.items():
+        print(f"    {original} → {anon}")
+
+# STEP 4: Study summary
+print("\n" + "=" * 60)
+print("STEP 4: Study summary")
+print("=" * 60)
+
+print(f"\n{study}")
+
+print("\nInterview details:")
 for i in study:
-    print(f"\nInterview with {i.get_participant_id()}")
-    print(i)
-    print(f"Speaker Mapping: {i.speaker_mapping}")
+    print(f"\n  Interview: {i.get_participant_id()}")
+    print(f"    ID: {i.id}")
+    print(f"    Rows: {len(i.transcript)}")
+    print(f"    Speakers: {i.get_speakers()}")
+    print(f"    Speaker Mapping: {i.speaker_mapping}")
 
 
