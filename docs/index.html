@@ -1,27 +1,27 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>EvalAssist</title>
+    <title>Qux360</title>
     <meta
       name="description"
-      content="EvalAssist is an application that simplifies using large language models as evaluators (LLM-as-a-Judge) of the output of other large language models."
+      content="Qux360 is an experimental Python library for AI-assisted qualitative analysis"
     />
 
-    <meta property="og:title" content="EvalAssist" />
+    <meta property="og:title" content="Qux360" />
     <meta
       property="og:description"
-      content="EvalAssist simplifies LLM-as-a-Judge by supporting users in iteratively refining evaluation criteria in a web-based user experience."
+      content="Qux360 is an experimental Python library for AI-assisted qualitative analysis. Its purpose is to enhance both the quality and speed of qualitative analysis by providing features that support researchers at various stages of the qualitative analysis process."
     />
-    <meta property="og:url" content="https://ibm.github.io/eval-assist/" />
+    <meta property="og:url" content="https://github.com/IBM/qux360" />
     <!-- <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" /> -->
     <meta property="og:image:type" content="image/png" />
 
     <meta
       property="og:image"
-      content="https://ibm.github.io/eval-assist/static/images/EvalAssistPreview.jpg"
+      content="https://github.com/IBM/qux360/xxx.jpg"
     />
     <meta
       property="og:image:secure_url"
@@ -33,7 +33,7 @@
     <!-- <meta name="twitter:title" content="EvalAssist" />
     <meta
       name="twitter:description"
-      content="EvalAssist simplifies LLM-as-a-Judge by supporting users in iteratively refining evaluation criteria in a web-based user experience."
+      content="."
     />
     <meta
       name="twitter:image"
@@ -167,16 +167,10 @@ https://ibm.github.io/eval-assist/ -->
             <div class="column">
               <div class="content">
                 <p class="is-size-5 has-text-weight-light">
-                  EvalAssist is an application that simplifies using large
-                  language models as evaluators (LLM-as-a-Judge) of the output
-                  of other large language models by supporting users in
-                  iteratively refining evaluation criteria in a web-based user
-                  experience. EvalAssist is based on the open source
-                  <a href="https://www.unitxt.ai/" target="_blank">Unitxt</a>
-                  evaluation library leveraging a multi-step prompt-chaining
-                  approach to conduct evaluations. Once users are satisfied with
-                  their criteria, they can generate a Jupyter notebook to run
-                  Unitxt evaluations of their criteria at scale.
+                  Qux360 is an experimental Python library for AI-assisted qualitative analysis. Its purpose is to enhance both the quality and speed of qualitative analysis by providing features that support researchers at various stages of the qualitative analysis process.
+This includes ensuring privacy and a secure environment to protect intellectual property (IP) information before beginning the analysis. The library allows for both bottom-up and top-down approaches to topic extraction and insight generation, while also emphasizing validation and transparency in AI outputs to maintain quality and promote trust. Validation is a core principle in ux360; every use of large language models is designed to be transparent, explainable, and open to scrutiny.
+The goal is to assist developers in creating trustworthy, interactive qualitative analysis experiences without compromising flexibility in applying ux360’s built-in quality assurance mechanisms. ux360 is built on Mellea, a generative computing library that offers robust and validated prompting techniques.
+Currently, the library has been tested exclusively with the meta-llama/llama-3-3-70b-instruct model; other models may require prompt adjustments.
                 </p>
               </div>
             </div>
@@ -230,11 +224,9 @@ https://ibm.github.io/eval-assist/ -->
         <!-- First Row -->
         <div class="columns">
           <div class="column key-feature-text is-half-desktop">
-            <h3>Flexible Methods</h3>
+            <h3>Import interview transcripts in DOCX, XLSX, or CSV formats</h3>
             <p>
-              Supports custom criteria development for both direct assessment
-              and pairwise comparison evaluation methods, giving users the
-              flexibility to choose what fits their use case best.
+    
             </p>
           </div>
           <div class="column key-feature-image is-hidden-touch">
@@ -256,12 +248,9 @@ https://ibm.github.io/eval-assist/ -->
             />
           </div>
           <div class="column key-feature-text is-half-desktop">
-            <h3>AI-Assisted Criteria Refinement</h3>
+            <h3>Export processed transcripts in XLSX or CSV formats</h3>
             <p>
-              Allows users to iteratively design and refine evaluation criteria
-              interactively with AI-assistance. Synthetic data produces edge
-              cases to test your criteria on multiple data samples
-              simultaneously.
+             
             </p>
           </div>
         </div>
@@ -269,10 +258,9 @@ https://ibm.github.io/eval-assist/ -->
         <!-- Third row -->
         <div class="columns">
           <div class="column key-feature-text is-half-desktop">
-            <h3>Trustworthy Results</h3>
+            <h3>Speaker anonymization</h3>
             <p>
-              Empowers users to inspect outcomes with built-in trustworthiness
-              metrics such as positional bias and model-generated explanations.
+              
             </p>
           </div>
           <div class="column key-feature-image is-hidden-touch">
@@ -293,30 +281,22 @@ https://ibm.github.io/eval-assist/ -->
             />
           </div>
           <div class="column is-half-desktop key-feature-text">
-            <h3>Scalable Toolkit</h3>
+            <h3>Statement anonymization using local, privacy-preserving entity detection</h3>
             <p>
-              Built on top of the open source
-              <a href="https://www.unitxt.ai/" target="_blank">Unitxt</a>
-              library, EvalAssist allows you to export your criteria to Jupyter
-              notebooks running bulk evaluations based on
-              <a href="https://www.unitxt.ai/" target="_blank">Unitxt</a>,
-              making it easy to scale your evaluations programmatically.
             </p>
           </div>
         </div>
 
         <div class="columns">
           <div class="column is-half-desktop key-feature-text">
-            <h3>Diverse Models</h3>
+            <h3>AI-assisted interviewee detection</h3>
             <p>
-              Integrates a range of general and specialized LLM judges,
-              including
+          
               <a
                 target="_blank"
                 href="https://www.ibm.com/granite/docs/models/guardian/"
-                >IBM Granite Guardian</a
-              >, Llama 3, Mixtral, and GPT-4, using a chained prompting process
-              to ensure consistent and accurate evaluations.
+                >AI-assisted top-down topic extraction</a
+              >,
             </p>
           </div>
           <div class="column key-feature-image is-hidden-touch">
@@ -337,12 +317,9 @@ https://ibm.github.io/eval-assist/ -->
             />
           </div>
           <div class="column is-half-desktop key-feature-text">
-            <h3>Test Case Catalog</h3>
+            <h3>Bulk processing across collections of interviews (e.g., anonymization)</h3>
             <p>
-              Includes a small catalogue of test cases to get you started and
-              allows you to save your own test cases. If you develop criteria
-              that could be of benefit to the larger community, consider
-              contributing them to Unitxt.
+      
             </p>
           </div>
         </div>
@@ -357,17 +334,9 @@ https://ibm.github.io/eval-assist/ -->
         </h2>
         <div class="tabs-wrapper">
           <div class="tabs is-centered">
-            <ul>
-              <li class="is-active">
-                <a>pip</a>
-              </li>
-              <li>
-                <a>uv</a>
-              </li>
-              <li>
-                <a>conda</a>
-              </li>
-            </ul>
+             <p>
+            This installs all necessary dependencies and starts Qux360. After installation, you can access EvalAssist athttps://github.com/IBM/qux360/ For more detailed instructions and tutorials, check out our Installation Guide
+             </p>
           </div>
           <div class="tabs-content">
             <ul>
@@ -434,94 +403,7 @@ eval-assist serve</code></pre>
         </p>
       </div>
     </section>
-
-    <section id="publications" class="section">
-      <div class="container">
-        <h2
-          class="title has-text-weight-medium has-text-black has-text-centered"
-        >
-          Publications
-        </h2>
-
-        <div class="content">
-          <ul>
-            <li>
-              <strong
-                >Aligning Human and LLM Judgments: Insights from EvalAssist on
-                Task-Specific Evaluations and AI-assisted Assessment Strategy
-                Preferences</strong
-              ><br />
-              <em>Preprint</em> –
-              <a
-                href="https://arxiv.org/abs/2410.00873"
-                target="_blank"
-                rel="noopener noreferrer"
-                >Read Paper</a
-              >
-            </li>
-            <li>
-              <strong
-                >EvalAssist: A Human-Centered Tool for LLM-as-a-Judge</strong
-              >
-              <br />
-              <em
-                >HEAL @ CHI 2025 Human-centered Evaluation and Auditing of
-                Language Models
-              </em>
-              <a
-                href="https://heal-workshop.github.io/chi2025_papers/11_EvalAssist_A_Human_Centered.pdf"
-                target="_blank"
-                rel="noopener noreferrer"
-                >Read Paper</a
-              >
-            </li>
-            <li>
-              <strong>EvalAssist: LLM-as-a-Judge Simplified</strong><br />
-              <em>AAAI 2025</em> –
-              <a
-                href="https://ojs.aaai.org/index.php/AAAI/article/view/35351"
-                target="_blank"
-                >Read Paper</a
-              >
-            </li>
-            <li>
-              <strong
-                >Black-box Uncertainty Quantification Method for
-                LLM-as-a-Judge</strong
-              ><br />
-              <em>NeurIPS 2024</em> –
-              <a href="https://arxiv.org/abs/2410.11594" target="_blank"
-                >Read Paper</a
-              >
-            </li>
-            <li>
-              <strong
-                >Human-Centered Design Recommendations for
-                LLM-as-a-Judge</strong
-              ><br />
-              <em>ACL 2024 Workshop HuCLLM</em> –
-              <a
-                href="https://aclanthology.org/2024.hucllm-1.2/"
-                target="_blank"
-                >Read Paper</a
-              >
-            </li>
-            <li>
-              <strong
-                >EvaluLLM: LLM Assisted Evaluation of Generative Outputs</strong
-              ><br />
-              <em>IUI ’24 Companion</em> –
-              <a
-                href="https://dl.acm.org/doi/epdf/10.1145/3640544.3645216"
-                target="_blank"
-                >Read Paper</a
-              >
-            </li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
+           
     <section id="team" class="section px-0 team-section">
       <div class="container team-container py-6 is-fluid">
         <h2
@@ -532,88 +414,11 @@ eval-assist serve</code></pre>
         <div class="authors-container has-text-white">
           <div class="author">
             <div class="author-image">
-              <a href="http://zahraashktorab.com/">
-                <img
-                  src="static/images/ZahraAshktorab.jpeg"
-                  alt="Zahra Ashktorab"
-                />
-              </a>
-            </div>
-            <p>
-              <a href="http://zahraashktorab.com/" class="has-text-white">
-                Zahra Ashktorab
-              </a>
-            </p>
-            <p class="is-italic has-text-weight-light is-size-7 org">
-              IBM Research Yorktown
-            </p>
-          </div>
-          <div class="author">
-            <div class="author-image">
-              <a href="https://research.ibm.com/people/elizabeth-daly">
-                <img
-                  src="static/images/ElizabethDaly.jpeg"
-                  alt="Elizabeth Daly"
-                />
-              </a>
-            </div>
-            <p>
-              <a
-                href="https://research.ibm.com/people/elizabeth-daly"
-                class="has-text-white"
-              >
-                Elizabeth Daly
-              </a>
-            </p>
-            <p class="is-italic has-text-weight-light is-size-7 org">
-              IBM Research Dublin
-            </p>
-          </div>
-          <div class="author">
-            <div class="author-image">
-              <a
-                href="https://scholar.google.com/citations?user=p_QSrigAAAAJ&hl=en"
-              >
-                <img
-                  src="static/images/MichaelDesmond.jpeg"
-                  alt="Michael Desmond"
-                />
-              </a>
-            </div>
-            <p>
-              <a
-                href="https://scholar.google.com/citations?user=p_QSrigAAAAJ&hl=en"
-                class="has-text-white"
-              >
-                Michael Desmond
-              </a>
-            </p>
-            <p class="is-italic has-text-weight-light is-size-7 org">
-              IBM Research Yorktown
-            </p>
-          </div>
-          <div class="author">
-            <div class="author-image">
-              <a href="https://research.ibm.com/people/hyo-jin-do">
-                <img src="static/images/GinaDo.jpeg" alt="Gina Do" />
-              </a>
-            </div>
-            <p>
-              <a
-                href="https://research.ibm.com/people/hyo-jin-do"
-                class="has-text-white"
-              >
-                Gina Do
-              </a>
-            </p>
-            <p class="is-italic has-text-weight-light is-size-7 org">
-              IBM Research Cambridge
-            </p>
-          </div>
-          <div class="author">
-            <div class="author-image">
               <a href="https://wernergeyer.com/">
-                <img src="static/images/WernerGeyer.jpeg" alt="Werner Geyer" />
+                <img
+                  src="static/images/WernerGeyer.jpeg"
+                  alt="WernerGeyer"
+                />
               </a>
             </div>
             <p>
@@ -627,55 +432,19 @@ eval-assist serve</code></pre>
           </div>
           <div class="author">
             <div class="author-image">
-              <a href="https://research.ibm.com/people/erik-miehling">
+              <a href="https://research.ibm.com/people/michael-muller">
                 <img
-                  src="static/images/ErikMiehling.jpeg"
-                  alt="Erik Miehling"
+                  src="static/images/MichaelMuller.jpeg"
+                  alt="Michael Muller"
                 />
               </a>
             </div>
             <p>
               <a
-                href="https://research.ibm.com/people/erik-miehling"
+                href="https://research.ibm.com/people/michael-muller"
                 class="has-text-white"
               >
-                Erik Miehling
-              </a>
-            </p>
-            <p class="is-italic has-text-weight-light is-size-7 org">
-              IBM Research Dublin
-            </p>
-          </div>
-          <div class="author">
-            <div class="author-image">
-              <a href="https://research.ibm.com/people/rahul-nair">
-                <img src="static/images/RahulNair.jpeg" alt="Rahul Nair" />
-              </a>
-            </div>
-            <p>
-              <a
-                href="https://research.ibm.com/people/rahul-nair"
-                class="has-text-white"
-              >
-                Rahul Nair
-              </a>
-            </p>
-            <p class="is-italic has-text-weight-light is-size-7 org">
-              IBM Research Dublin
-            </p>
-          </div>
-          <div class="author">
-            <div class="author-image">
-              <a href="https://research.ibm.com/people/qian-pan">
-                <img src="static/images/QianPan.jpeg" alt="Qian Pan" />
-              </a>
-            </div>
-            <p>
-              <a
-                href="https://research.ibm.com/people/qian-pan"
-                class="has-text-white"
-              >
-                Qian Pan
+                Michael Muller
               </a>
             </p>
             <p class="is-italic has-text-weight-light is-size-7 org">
@@ -684,17 +453,54 @@ eval-assist serve</code></pre>
           </div>
           <div class="author">
             <div class="author-image">
-              <img
-                src="static/images/TejaswiniPedapati.png"
-                alt="Tejaswini Pedapati"
-              />
+              <a
+                href="https://www.linkedin.com/in/heloisacandello/"
+              >
+                <img
+                  src="static/images/Heloisa Candello.jpeg"
+                  alt="Heloisa Candello"
+                />
+              </a>
             </div>
             <p>
               <a
-                href="https://scholar.google.com/citations?hl=en&user=nwSF2RkAAAAJ"
+                href="https://www.linkedin.com/in/heloisacandello/"
                 class="has-text-white"
               >
-                Tejaswini Pedapati
+                Heloisa Candello
+              </a>
+            </p>
+            <p class="is-italic has-text-weight-light is-size-7 org">
+              IBM Research Brazil
+            </p>
+          </div>
+          <div class="author">
+            <div class="author-image">
+              <a href="">
+                <img src="static/images/JessicaHe.jpeg" alt="Jessica He" />
+              </a>
+            </div>
+            <p>
+              <a
+                href="https://research.ibm.com/people/jessica-he"
+                class="has-text-white"
+              >
+                Jessica He
+              </a>
+            </p>
+            <p class="is-italic has-text-weight-light is-size-7 org">
+              IBM Research Cambridge
+            </p>
+          </div>
+          <div class="author">
+            <div class="author-image">
+              <a href="https://research.ibm.com/people/siya-kunde">
+                <img src="static/images/SyiaKunde.jpeg" alt="Syia Kunde" />
+              </a>
+            </div>
+            <p>
+              <a href="https://research.ibm.com/people/siya-kunde" class="has-text-white">
+                Syia Kunde
               </a>
             </p>
             <p class="is-italic has-text-weight-light is-size-7 org">
@@ -703,25 +509,44 @@ eval-assist serve</code></pre>
           </div>
           <div class="author">
             <div class="author-image">
-              <a
-                href="https://scholar.google.com/citations?user=LmIGTXEAAAAJ&hl=en"
-              >
+              <a href="https://www.linkedin.com/in/marielalanza/?locale=en_US">
                 <img
-                  src="static/images/MartinSantillanCooper.jpeg"
-                  alt="Martin Santillan Cooper"
+                  src="static/images/MarielaLanza.jpeg"
+                  alt="Mariela Lanza"
                 />
               </a>
             </div>
             <p>
               <a
-                href="https://scholar.google.com/citations?user=LmIGTXEAAAAJ&hl=en"
+                href="https://www.linkedin.com/in/marielalanza/?locale=en_US"
                 class="has-text-white"
               >
-                Martin Santillán Cooper
+                Mariela Lanza
               </a>
             </p>
             <p class="is-italic has-text-weight-light is-size-7 org">
-              IBM Research Argentina
+              IBM Argentina
+            </p>
+            </div>
+          <div class="author">
+            <div class="author-image">
+              <a href="https://www.linkedin.com/in/daitasarkar/?originalSubdomain=in">
+                <img
+                  src="static/images/DaitaSakar.jpeg"
+                  alt="Daita Sarkar"
+                />
+              </a>
+            </div>
+            <p>
+              <a
+                href="https://www.linkedin.com/in/daitasarkar/?originalSubdomain=in"
+                class="has-text-white"
+              >
+                Daita Sarkar
+              </a>
+            </p>
+            <p class="is-italic has-text-weight-light is-size-7 org">
+              IBM India
             </p>
           </div>
         </div>
