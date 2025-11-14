@@ -1,12 +1,311 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Qux360</title>
-</head>
-<body>
-  <h1>Qux360</h1>
-  <h2>An experimental Python library for AI-assisted qualitative analysis </h2>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Qux360</title>
+    <meta
+      name="description"
+      content="Experimental Python library for AI-assisted qualitative analysis. Its purpose is to enhance both the quality and speed of qualitative analysis by providing features that support researchers at various stages of the qualitative analysis process."
+      />
+
+    <meta
+      property="og:description"
+      content="Qux360 is an experimental Python library for AI-assisted qualitative analysis. Its purpose is to enhance both the quality and speed of qualitative analysis by providing features that support researchers at various stages of the qualitative analysis process."
+    />
+    <meta property="og:url" content="https://ibm.github.io/qux360/" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="keywords"
+      content="Qux360, UXR, AI Assisted, Qualitative analysis"
+    />
+
+    <link rel="icon" href="favicon.ico" sizes="32x32" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.4/css/bulma.min.css"
+    />
+    <!-- Font Awesome -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="static/css/index.css" />
+
+    <!-- <script src="bulma/bulma.js"></script> -->
+    <script src="bulma/tabs.js"></script>
+
+    <!-- Font Awesome JS -->
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"
+    ></script>
+  </head>
+  <body>
+    <section class="hero">
+      <div class="hero-body pb-0">
+        <div class="container is-max-desktop">
+          <div class="columns is-centered">
+            <div class="column has-text-centered">
+              <h1
+                class="title is-1 is-flex is-align-items-center is-justify-content-center"
+              >
+                Qux360
+              </h1>
+              <h2 class="title is-2 is-flex is-align-items-center is-justify-content-center">
+                Experimental Python library for AI-assisted qualitative analysis
+              </h2>
+              <div class="columns is-centered">
+                <div class="column has-text-centered buttons are-small">
+                  <a
+                    href="https://github.com/IBM/qux360"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="button is-dark mr-0"
+                  >
+                    <span class="icon">
+                      <i class="fab fa-github"></i>
+                    </span>
+                    <span class="is-size-6 has-text-weight-light">Code</span>
+                  </a>
+                  <a href="https://github.com/IBM/qux360/wiki/Getting-Started" class="button is-dark mr-0">
+                    <span class="icon">
+                      <i class="fas fa-book"></i>
+                    </span>
+                    <span class="is-size-6 has-text-weight-light">Get Started</span>
+                  </a>
+                  <!--
+                  <a
+                    href="https://github.com/IBM/qux360-demo"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="button is-dark mr-0"
+                  >
+                    <span class="icon">
+                      <i class="fas fa-rocket"></i>
+                    </span>
+                    <span class="is-size-6 has-text-weight-light">Try it out!</span>
+                  </a>
+                  -->
+                  <a href="#team" class="button is-dark mr-0">
+                    <span class="icon">
+                      <i class="fas fa-user-group"></i>
+                    </span>
+                    <span class="is-size-6 has-text-weight-light">Team</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      <div class="hero-body pb-5 has-text-left">
+          <br/>
+          <h3 class="is-size-4 has-text-grey has-text-weight-medium">
+            Qux360 is an experimental Python library for AI-assisted qualitative analysis. 
+            Its purpose is to enhance both the quality and speed of qualitative analysis by providing features that support researchers at various stages of the qualitative analysis process.
+          </h2>
+          <h3 class="is-size-4 has-text-grey has-text-weight-medium">
+            This includes ensuring privacy and a secure environment to protect intellectual property (IP) information before beginning the analysis. The library allows for both bottom-up and top-down approaches to topic extraction and insight generation, while also emphasizing validation and transparency in AI outputs to maintain quality and promote trust. Validation is a core principle in Qux360; every use of large language models is designed to be transparent, explainable, and open to scrutiny.
+          </h3>
+          <br/>
+          <h3 class="is-size-4 has-text-grey has-text-weight-medium"><b>
+            The goal is to assist developers in creating trustworthy, interactive qualitative analysis experiences without compromising flexibility in applying Qux360’s built-in quality assurance mechanisms
+          </b></h3>
+          <br/>
+          <h3 class="is-size-4 has-text-grey has-text-weight-medium">
+            Qux360 is built on Mellea, a generative computing library that offers robust and validated prompting techniques.
+          </h3>
+          <h3 class="is-size-4 has-text-grey has-text-weight-medium">
+            Currently, the library has been tested exclusively with the meta-llama/llama-3-3-70b-instruct model; other models may require prompt adjustments.
+          </h3>
+        </div>
+      </div>
+    </section>
+
+    <section class="section hero pt-0">
+      <div class="container">
+        <!-- First Row -->
+        <div class="columns">
+          <div class="column key-feature-text has-text-left">
+            <h3>Key Capabilities</h3>
+            <ul>
+              <li>•	Import interview transcripts in DOCX, XLSX, or CSV formats</li>
+              <li>•	Export processed transcripts in XLSX or CSV formats</li>
+              <li>•	Speaker anonymization</li>
+              <li>•	Statement anonymization using local, privacy-preserving entity detection</li>
+              <li>•	AI-assisted interviewee detection</li>
+              <li>•	AI-assisted top-down topic extraction</li>
+              <li>•	Bulk processing across collections of interviews (e.g., anonymization)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section id="get_started" class="section pb-0">
+      <div class="container">
+        <h2
+          class="title has-text-weight-medium has-text-black has-text-centered pb-3"
+        >
+          Getting Started
+        </h2>
+        <p class="is-size-5 has-text-weight-light pt-4">
+          Following <a href="https://github.com/IBM/qux360/?tab=readme-ov-file#-installation" target="_blank">these</a> instructions, Qux360 is ready to be used.
+          After installation, you can run examples from our 
+          <a
+            href="https://github.com/IBM/qux360/wiki/Getting-Started"
+            rel="noopener noreferrer"
+            target="_blank"
+            >Getting Started Guide</a
+          >
+          .
+        </p>
+      </div>
+    </section>
+
+    <section id="team" class="section px-0 team-section">
+      <div class="container team-container py-6 is-fluid">
+        <h2
+          class="title is-size-3 has-text-weight-medium has-text-centered has-text-white"
+        >
+          Team
+        </h2>
+        <div class="authors-container has-text-white">
+          <div class="author">
+            <div class="author-image">
+              <a href="https://wernergeyer.com/" target="_blank">
+                <img
+                  src="static/images/werner.jpg"
+                  alt="Werner Geyer"
+                />
+              </a>
+            </div>
+            <p>
+              <a href="https://wernergeyer.com/" class="has-text-white" target="_blank">
+                Werner Geyer
+              </a>
+            </p>
+            <p class="is-italic has-text-weight-light is-size-7 org">
+              IBM Research Cambridge
+            </p>
+          </div>
+          <div class="author">
+            <div class="author-image">
+              <a href="https://scholar.google.com/citations?user=G3Rfeg8AAAAJ&hl=en" target="_blank">
+                <img
+                  src="static/images/michael.png"
+                  alt="Michael Muller"
+                />
+              </a>
+            </div>
+            <p>
+              <a href="https://scholar.google.com/citations?user=G3Rfeg8AAAAJ&hl=en" class="has-text-white" target="_blank">
+                Michael Muller
+              </a>
+            </p>
+            <p class="is-italic has-text-weight-light is-size-7 org">
+              IBM Research Cambridge
+            </p>
+          </div>
+          <div class="author">
+            <div class="author-image">
+              <a href="https://scholar.google.com/citations?user=8B5GrTYAAAAJ&hl=en" target="_blank">
+                <img
+                  src="static/images/heloisa.jpg"
+                  alt="Heloisa Candello"
+                />
+              </a>
+            </div>
+            <p>
+              <a href="https://scholar.google.com/citations?user=8B5GrTYAAAAJ&hl=en" class="has-text-white" target="_blank">
+                Heloisa Candello
+              </a>
+            </p>
+            <p class="is-italic has-text-weight-light is-size-7 org">
+              IBM Research Brazil
+            </p>
+          </div>
+          <div class="author">
+            <div class="author-image">
+              <a href="https://scholar.google.com/citations?user=QVoF-nMAAAAJ&hl=en">
+                <img src="static/images/jessica.jpg" alt="Jessica He" />
+              </a>
+            </div>
+            <p>
+              <a
+                href="https://scholar.google.com/citations?user=QVoF-nMAAAAJ&hl=en"
+                class="has-text-white"
+              >
+                Jessica He
+              </a>
+            </p>
+            <p class="is-italic has-text-weight-light is-size-7 org">
+              IBM Research Cambridge
+            </p>
+          </div>
+          <div class="author">
+            <div class="author-image">
+              <a href="https://scholar.google.com/citations?user=CRzV4-8AAAAJ&hl=en">
+                <img src="static/images/siya.jpg" alt="Siya Kunde" />
+              </a>
+            </div>
+            <p>
+              <a href="https://scholar.google.com/citations?user=CRzV4-8AAAAJ&hl=en" class="has-text-white">
+                Siya Kunde
+              </a>
+            </p>
+            <p class="is-italic has-text-weight-light is-size-7 org">
+              IBM Research Cambridge
+            </p>
+          </div>
+          <div class="author">
+            <div class="author-image">
+              <a href="https://www.linkedin.com/in/marielalanza/">
+                <img
+                  src="static/images/mariela.png"
+                  alt="Mariela Lanza"
+                />
+              </a>
+            </div>
+            <p>
+              <a
+                href="https://www.linkedin.com/in/marielalanza/"
+                class="has-text-white"
+              >
+                Mariela Lanza
+              </a>
+            </p>
+            <p class="is-italic has-text-weight-light is-size-7 org">
+              IBM Research Argentina
+            </p>
+          </div>
+          <div class="author">
+            <div class="author-image">
+              <a href="https://www.linkedin.com/in/daitasarkar/">
+                <img src="static/images/daita.jpg" alt="Daita Sarkar" />
+              </a>
+            </div>
+            <p>
+              <a
+                href="https://www.linkedin.com/in/daitasarkar/"
+                class="has-text-white"
+              >
+                Daita Sarkar
+              </a>
+            </p>
+            <p class="is-italic has-text-weight-light is-size-7 org">
+              IBM UX Researcher India
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </body>
 </html>
