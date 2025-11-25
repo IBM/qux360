@@ -2,7 +2,13 @@
 
 **Qux360** is an experimental Python library for **AI-assisted qualitative analysis**.  
 
-Validation is a **first-class concept** in Qux360 — every use of large language models is designed to be transparent, explainable, and open to scrutiny. The goal is to help developers build **trustworthy, interactive qualitative analysis experiences** while retaining flexibility in how they apply Qux360’s built-in quality assurance mechanisms.  
+Validation is a **first-class concept** in Qux360 — every use of large language models is designed to be transparent, explainable, and open to scrutiny. The goal is to help developers build **trustworthy, interactive qualitative analysis experiences** while retaining flexibility in how they apply Qux360’s built-in quality assurance mechanisms.  Validation is provided through nested **QIndex** validators which return statuses statuses as follows:
+- `ok`: All checks passed
+- `check`: Some issues detected, human review recommended
+- `iffy`: Significant problems detected 
+
+Currently, validators are predefined for each LLM call but future versions will support validator extensions. To learn more about validators, please check our [validator overview](VALIDATORS.md).
+
 
 Qux360 is built on **[Mellea](https://mellea.ai/)**, a **generative computing library** that provides robust and validated prompting techniques. The current Qux360 version supports **interview data with a single participant (interviewee)** only, with plans to expand this scope in future releases. 
 
@@ -13,8 +19,10 @@ The current version has been tested only with **meta-llama/llama-3-3-70b-instruc
 - Export processed transcripts in **XLSX** or **CSV** formats  
 - **Speaker anonymization**  
 - **Statement anonymization** using **local, privacy-preserving entity detection**  
-- **AI-assisted interviewee detection**  
-- **AI-assisted top-down topic extraction**  
+- AI-assisted **interviewee detection**  
+- AI-assisted **top-down topic extraction**
+- AI-assisted **thematic analysis across topics**
+- **Predefined validators** for LLM analysis (heuristics, structural, LLM-as-a-Judge)
 - **Bulk processing** across collections of interviews (e.g., anonymization)
 
 ---
