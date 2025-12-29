@@ -111,20 +111,24 @@ class Study:
             if doc.metadata.get("participant_id") == participant_id
         ]
 
-    def identify_interviewees(self, m=None):
+    def identify_interviewees(self, client, model: str = "watsonx/meta-llama/llama-3-3-70b-instruct", max_retries: int = 3):
         """
         Identify the likely interviewee for each interview in the study.
         Results are stored in interview.metadata['participant_id'].
 
         Parameters
         ----------
-        m : Optional[MelleaSession]
-            If provided, passed through to Interview.identify_interviewee().
+        client
+            Instructor client for AI analysis
+        model : str, default="watsonx/meta-llama/llama-3-3-70b-instruct"
+            LLM model to use for identification
+        max_retries : int, default=3
+            Number of retries if structured output validation fails
         """
         logger.debug(f"Identify interviewees for study {self.id}")
         results = {}
         for doc in self.documents:
-            predicted = doc.identify_interviewee(m=m)
+            predicted = doc.identify_interviewee(client=client, model=model, max_retries=max_retries)
             results[doc.id] = predicted
 
         return results

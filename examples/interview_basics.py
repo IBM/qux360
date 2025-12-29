@@ -1,7 +1,7 @@
 from pathlib import Path
 from qux360.core import Interview
-from mellea import MelleaSession
-from mellea.backends.litellm import LiteLLMBackend
+import instructor
+from litellm import completion
 from dotenv import load_dotenv
 import os
 import logging
@@ -20,10 +20,8 @@ file = data_dir.joinpath("interview_A.xlsx")
 export_file = data_dir.joinpath("interview_A_exported.xlsx")
 config_file = ROOT_DIR.joinpath("examples/config.json")
 
-m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID"))) # type: ignore
-
-# Suppress Mellea's FancyLogger (MelleaSession resets it to DEBUG, so we set it here)
-logging.getLogger('fancy_logger').setLevel(logging.WARNING)
+# Create Instructor client for structured outputs
+client = instructor.from_litellm(completion)
 
 participant_id = "P1"
 
@@ -114,12 +112,16 @@ print(f"✅ Anonymized {len(replacements)} entities")
 print("\nTranscript after entity anonymization:")
 i.show(10)
 
-# STEP 4: Identify interviewee
+# STEP 4: Identify interviewee (using Instructor)
 print("\n" + "=" * 60)
 print("STEP 4: Identifying interviewee using AI")
 print("=" * 60)
 
-result = i.identify_interviewee(m)
+result = i.identify_interviewee(
+    client=client,
+    model=os.getenv("MODEL_ID"),
+    max_retries=3
+)
 identification = result.result
 
 print("\n*** AI Result ***")
