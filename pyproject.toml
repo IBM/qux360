@@ -16,6 +16,7 @@ dependencies = [
     "python-docx",
     "webvtt-py",
     "mellea==0.1.3",
+    "instructor",
     "ibm-watsonx-ai<=1.3.38",
     "spacy",
     "xlsxwriter",

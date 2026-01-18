@@ -24,6 +24,8 @@ from pathlib import Path
 from qux360.core import Study
 from mellea import MelleaSession
 from mellea.backends.litellm import LiteLLMBackend
+import instructor
+from litellm import completion
 from dotenv import load_dotenv
 import os
 import logging
@@ -38,6 +40,10 @@ ROOT_DIR = Path.cwd()
 data_dir = ROOT_DIR.joinpath("examples/data")
 interview_files = [data_dir.joinpath("interview_A.csv"), data_dir.joinpath("interview_B.csv"), data_dir.joinpath("interview_C.csv")]
 
+# Create Instructor client for identify_interviewee
+client = instructor.from_litellm(completion)
+
+# Keep Mellea for methods that haven't been migrated yet
 m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID")))
 
 # Disable mellea's progress bar
@@ -86,9 +92,13 @@ if needs_topic_extraction:
     print("TOPIC EXTRACTION: Extracting topics from interviews (may take a few minutes)")
     print("=" * 60)
 
-    # Identify interviewees
+    # Identify interviewees (using Instructor)
     print("\n→ *** Step 1: Identifying interviewees...\n")
-    results = study.identify_interviewees(m)
+    results = study.identify_interviewees(
+        client=client,
+        model=os.getenv("MODEL_ID"),
+        max_retries=3
+    )
 
     
     for interview_id, validated_result in results.items():

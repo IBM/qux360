@@ -218,7 +218,7 @@ class Interview:
         return speakers
 
  
-    def identify_interviewee(self, m: MelleaSession, snippet_size: int = 25) -> Validated[IntervieweeIdentification]:
+    def identify_interviewee(self, client, snippet_size: int = 25, model: str = "watsonx/meta-llama/llama-3-3-70b-instruct", max_retries: int = 3) -> Validated[IntervieweeIdentification]:
         """
         Identify the likely interviewee using AI analysis with validation.
 
@@ -229,19 +229,18 @@ class Interview:
 
         Validation Strategy
         -------------------
-        Two validators are applied:
-        1. Mellea requirements (informational - tracks internal requirement scores)
-        2. Heuristic validation (primary - word count agreement with AI result)
-
-        The overall validation status is determined by the heuristic validator only.
-        Mellea requirements are informational and don't affect the overall status.
+        Heuristic validation is applied to check word count agreement with AI result.
 
         Parameters
         ----------
-        m : MelleaSession
-            Active Mellea session for AI analysis (required)
+        client
+            Instructor client for AI analysis (required)
         snippet_size : int, default=25
             Number of transcript rows to analyze (from the beginning)
+        model : str, default="watsonx/meta-llama/llama-3-3-70b-instruct"
+            LLM model to use for identification
+        max_retries : int, default=3
+            Number of retries if structured output validation fails
 
         Returns
         -------
@@ -285,66 +284,48 @@ class Interview:
         # Get list of speakers for requirements
         speakers_list = ", ".join(self.get_speakers())
 
-        # Call Mellea for structured interviewee identification
-        logger.info(f"Calling Mellea for interviewee identification - Interview ID: {self.id}")
-        prompt = """
-        You are analyzing an interview transcript to identify the interviewee.
+        # Call LLM for structured interviewee identification
+        logger.info(f"Calling LLM for interviewee identification - Interview ID: {self.id}")
 
-        In interviews, typically:
-        - One or more speakers are interviewers (asking questions, shorter responses)
-        - One speaker is the interviewee (giving detailed answers, longer responses)
+        # Build prompt with requirements embedded
+        prompt = f"""You are analyzing an interview transcript to identify the interviewee.
 
-        Transcript Snippet:
-        {{snippet}}
+In interviews, typically:
+- One or more speakers are interviewers (asking questions, shorter responses)
+- One speaker is the interviewee (giving detailed answers, longer responses)
 
-        Identify the interviewee, assess your confidence, and provide and explanation.
-        """
+Requirements:
+- The interviewee field must be one of these speaker IDs: {speakers_list}
+- The confidence field must be 'high', 'medium', or 'low'
+- The explanation must explain the conversation patterns that led to this identification (1-2 sentences)
 
-        requirements = [
-            f"The interviewee field must be one of these speaker IDs: {speakers_list}",
-            "The confidence field must be 'high', 'medium', or 'low'",
-            "The explanation must explain the conversation patterns that led to this identification (1-2 sentences)"
-        ]
+Transcript Snippet:
+{snippet}
+
+Identify the interviewee, assess your confidence, and provide an explanation."""
 
         try:
-            response = m.instruct(
-                description=prompt,
-                user_variables={"snippet": snippet},
-                requirements=requirements, # type: ignore
-                format=IntervieweeIdentification,
-                strategy=RejectionSamplingStrategy(loop_budget=1),
-                return_sampling_results=True
+            # Use Instructor for structured output
+            identification = client.chat.completions.create(
+                model=model,
+                response_model=IntervieweeIdentification,
+                messages=[{"role": "user", "content": prompt}],
+                max_retries=max_retries,
+                temperature=0.0,
             )
 
-            # Print Mellea validations
-            if logger.isEnabledFor(logging.DEBUG): 
-                print_mellea_validations(response, title="Mellea Interviewee Identification Validations")
-
-            # Parse structured result
-            identification = IntervieweeIdentification.model_validate_json(response._underlying_value)
             logger.info(f"LLM identified: {identification.interviewee} (self-confidence: {identification.confidence})")
 
-            # Validator 1: Mellea requirements (informational)
-            logger.debug(f"Validator 1: Extracting Mellea validation scores - Interview ID: {self.id}")
-            mellea_validator = MelleaRequirementsValidator(adjust_status=True)
-            mellea_check = mellea_validator.validate(
-                response,
-                result_summary=f"LLM identified: {identification.interviewee} - Explanation: {identification.explanation}"
-            )
-
-            # Validator 2: Heuristic agreement (primary)
-            logger.debug(f"Validator 2: Calculating heuristic agreement - Interview ID: {self.id}")
+            # Heuristic validation (primary)
+            logger.debug(f"Calculating heuristic agreement - Interview ID: {self.id}")
             heuristic_validator = HeuristicAgreementValidator(
                 ok_threshold=0.60,
                 check_threshold=0.50
             )
             heuristic_check = heuristic_validator.validate(identification.interviewee, self.transcript)
 
-            # Aggregate both validators
-            overall_validation = QIndex.from_checks(
-                [mellea_check, heuristic_check],
-                aggregation="consensus"
-            )
+            # Use heuristic check as overall validation
+            overall_validation = heuristic_check
 
             # Update metadata only if validation passed
             if overall_validation.status in ("ok", "check"):

@@ -3,6 +3,8 @@ from qux360.core import Interview
 from mellea import MelleaSession
 #from mellea.backends.watsonx import WatsonxAIBackend
 from mellea.backends.litellm import LiteLLMBackend
+import instructor
+from litellm import completion
 from dotenv import load_dotenv
 import os
 import json
@@ -21,6 +23,10 @@ data_dir = ROOT_DIR.joinpath("examples/data")
 file = data_dir.joinpath("interview_A.csv")
 config_file = ROOT_DIR.joinpath("examples/config.json")
 
+# Create Instructor client for structured outputs
+client = instructor.from_litellm(completion)
+
+# Keep Mellea for methods that haven't been migrated yet
 m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID")))
 
 # Suppress Mellea's FancyLogger (MelleaSession resets it to DEBUG, so we set it here)
@@ -59,12 +65,16 @@ print(f"\nLoaded interview: {i}")
 print("\nTranscript preview:")
 i.show(10)
 
-# STEP 2: Identify interviewee
+# STEP 2: Identify interviewee (using Instructor)
 print("\n" + "=" * 60)
 print("STEP 2: Identifying interviewee")
 print("=" * 60)
 
-result = i.identify_interviewee(m)
+result = i.identify_interviewee(
+    client=client,
+    model=os.getenv("MODEL_ID"),
+    max_retries=3
+)
 identification = result.result
 print("*** AI Result ***")
 print(f"\nInterview participant: {identification.interviewee}")
